@@ -1,5 +1,5 @@
 ﻿import request from '@/utils/request';
-import { Group, AssignRow, LinearScore, EvalPeriod, User, Department, PeriodStatus } from '@/types';
+import { Group, AssignRow, LinearScore, EvalPeriod, User, Department, PeriodStatus, SystemRole } from '@/types';
 
 export function getDeptList(): Promise<Department[]> {
   return request.get('/depts');
@@ -30,6 +30,19 @@ export function deleteGroup(id: number): Promise<void> {
 
 export function getGroupUsers(groupId: number): Promise<User[]> {
   return request.get(`/users/by-group/${groupId}`);
+}
+
+export function getRoleList(all = false): Promise<SystemRole[]> {
+  return request.get(all ? '/roles/all' : '/roles');
+}
+
+export function saveRole(data: Partial<SystemRole>): Promise<void> {
+  if (data.id) return request.put(`/roles/${data.id}`, data);
+  return request.post('/roles', data);
+}
+
+export function deleteRole(id: number): Promise<void> {
+  return request.delete(`/roles/${id}`);
 }
 
 export function getLeaderList(): Promise<User[]> {

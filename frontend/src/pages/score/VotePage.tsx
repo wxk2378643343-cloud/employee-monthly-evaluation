@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Table, Select, Button, Tag, Space, Spin, Modal, Form, Radio, message } from 'antd';
+import { Card, Table, Select, Button, Tag, Space, Spin, Modal, Form, Radio } from 'antd';
+import { message } from '@/utils/message';
 import * as scoreApi from '@/api/score';
 import * as adminApi from '@/api/admin';
 import { EvalPeriod, VoteCandidate, VoteRecord } from '@/types';
@@ -130,3 +131,6 @@ const VotePage: React.FC = () => {
 };
 
 export default VotePage;
+
+
+

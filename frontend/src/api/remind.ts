@@ -21,7 +21,8 @@ export function getRemindList(params: { pageNum: number; pageSize: number; perio
   total: number;
   list: Remind[];
 }> {
-  return request.get('/reminds/mine', { params: { periodId: params.periodId } }).then((list: Remind[]) => {
+  return request.get('/reminds/mine', { params: { periodId: params.periodId } }).then((res: any) => {
+    const list = Array.isArray(res) ? (res as Remind[]) : [];
     const start = (params.pageNum - 1) * params.pageSize;
     const paged = list.slice(start, start + params.pageSize);
     return { total: list.length, list: paged };

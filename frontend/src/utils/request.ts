@@ -1,7 +1,7 @@
 ﻿import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { message } from 'antd';
 import { ApiResponse } from '@/types';
 import { getToken, removeToken } from './auth';
+import { message } from '@/utils/message';
 
 const request = axios.create({
   baseURL: '/api',

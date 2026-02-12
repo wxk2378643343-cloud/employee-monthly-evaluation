@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Card, Table, Button, Space, Modal, Form, Input, DatePicker, Select, message, Tag } from 'antd';
+import { Card, Table, Button, Space, Modal, Form, Input, DatePicker, Select, Tag } from 'antd';
+import { message } from '@/utils/message';
 import { PlusOutlined, EditOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import * as adminApi from '@/api/admin';
@@ -136,3 +137,5 @@ const PeriodManage: React.FC = () => {
 };
 
 export default PeriodManage;
+
+

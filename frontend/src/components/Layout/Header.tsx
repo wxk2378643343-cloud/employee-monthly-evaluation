@@ -1,6 +1,6 @@
 ﻿import React from 'react';
-import { Layout, Avatar, Dropdown, Space, Badge, Popover, List, Button, Empty, Tag } from 'antd';
-import { UserOutlined, LogoutOutlined, BellOutlined } from '@ant-design/icons';
+import { Layout, Dropdown, Space, Badge, Popover, List, Button, Empty, Tag, Avatar } from 'antd';
+import { LogoutOutlined, BellOutlined, SettingOutlined, CaretDownFilled } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { logout } from '@/store/authSlice';
@@ -24,17 +24,17 @@ const Header: React.FC = () => {
 
   const userMenuItems: MenuProps['items'] = [
     {
-      key: 'info',
-      label: (
-        <div>
-          <div>{user?.realName}</div>
-          <div className="text-muted-sm">{user?.role ? RoleLabel[user.role] : ''}</div>
-        </div>
-      ),
-      disabled: true,
+      key: 'profile',
+      icon: <SettingOutlined />,
+      label: '个人设置',
+      onClick: () => navigate('/profile'),
     },
-    { type: 'divider' },
-    { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: handleLogout },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: '退出登录',
+      onClick: handleLogout,
+    },
   ];
 
   const remindContent = (
@@ -49,15 +49,36 @@ const Header: React.FC = () => {
                 <List.Item.Meta
                   avatar={<Avatar icon={<BellOutlined />} />}
                   title={<Tag>{item.remindType}</Tag>}
-                  description={<div><div>{item.remindContent}</div><div className="remind-time">{item.createTime}</div></div>}
+                  description={
+                    <div>
+                      <div>{item.remindContent}</div>
+                      <div className="remind-time">{item.createTime}</div>
+                    </div>
+                  }
                 />
               </List.Item>
             )}
           />
           <div className="remind-footer">
             <Space>
-              <Button type="link" onClick={() => { dispatch(markAllRead()); setPopoverOpen(false); }}>全部已读</Button>
-              <Button type="link" onClick={() => { setPopoverOpen(false); navigate('/remind/list'); }}>查看全部</Button>
+              <Button
+                type="link"
+                onClick={() => {
+                  dispatch(markAllRead());
+                  setPopoverOpen(false);
+                }}
+              >
+                全部已读
+              </Button>
+              <Button
+                type="link"
+                onClick={() => {
+                  setPopoverOpen(false);
+                  navigate('/remind/list');
+                }}
+              >
+                查看全部
+              </Button>
             </Space>
           </div>
         </>
@@ -69,8 +90,15 @@ const Header: React.FC = () => {
 
   return (
     <AntHeader className="app-header">
-      <div className="app-header__title">员工月度评价系统</div>
-      <Space size={24}>
+      <div className="app-header__brand">
+        <div className="app-header__brand-dot" />
+        <div className="app-header__title-wrap">
+          <div className="app-header__title">员工月度评价系统</div>
+          <div className="app-header__subtitle">Performance Management</div>
+        </div>
+      </div>
+
+      <Space size={16}>
         <Popover
           content={remindContent}
           trigger="click"
@@ -85,10 +113,12 @@ const Header: React.FC = () => {
             <BellOutlined className="app-header__bell" />
           </Badge>
         </Popover>
+
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-          <Space className="app-header__user">
-            <Avatar icon={<UserOutlined />} className="app-header__avatar" />
-            <span>{user?.realName}</span>
+          <Space className="app-header__user" style={{ cursor: 'pointer' }}>
+            <span className="app-header__name">{user?.realName}</span>
+            <Tag className="app-header__role" color="red">{user?.role ? RoleLabel[user.role] : ''}</Tag>
+            <CaretDownFilled className="app-header__caret" />
           </Space>
         </Dropdown>
       </Space>

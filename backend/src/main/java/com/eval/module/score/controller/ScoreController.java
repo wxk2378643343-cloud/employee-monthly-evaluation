@@ -38,7 +38,7 @@ public class ScoreController {
     }
 
     @PostMapping("/calculate/{periodId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('score:calculate')")
     public Result<Void> calculateScores(@PathVariable Long periodId) {
         scoreCalculateService.calculateScores(periodId);
         return Result.success();

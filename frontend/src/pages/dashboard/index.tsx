@@ -1,12 +1,16 @@
-﻿import React, { useEffect, useState } from 'react';
-import { Card, Row, Col, Statistic, Table, Select, Spin } from 'antd';
-import { UserOutlined, CheckCircleOutlined, ClockCircleOutlined, WarningOutlined } from '@ant-design/icons';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Card, Row, Col, Statistic, Table, Select, Spin, Button, Progress, Tag, Empty, Space } from 'antd';
+import { UserOutlined, CheckCircleOutlined, ClockCircleOutlined, WarningOutlined, BellOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '@/store';
-import { isAdminRole, isLeaderOrAdmin, EvalPeriod, RankInfo } from '@/types';
+import { isAdminRole, isLeaderOrAdmin, EvalPeriod, RankInfo, PendingUser, EvalTypeLabel, EvalHistory } from '@/types';
 import * as queryApi from '@/api/query';
 import * as adminApi from '@/api/admin';
+import * as scoreApi from '@/api/score';
+import * as remindApi from '@/api/remind';
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
   const [loading, setLoading] = useState(false);
   const [periods, setPeriods] = useState<EvalPeriod[]>([]);
@@ -19,6 +23,9 @@ const Dashboard: React.FC = () => {
     warningCount: number;
   }>();
   const [rankList, setRankList] = useState<RankInfo[]>([]);
+  const [pendingList, setPendingList] = useState<PendingUser[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [myHistory, setMyHistory] = useState<EvalHistory[]>([]);
 
   const isAdmin = isAdminRole(user?.role);
   const isLeader = isLeaderOrAdmin(user?.role);
@@ -49,9 +56,35 @@ const Dashboard: React.FC = () => {
     })();
   }, [currentPeriodId, isLeader, isAdmin]);
 
+  useEffect(() => {
+    if (!currentPeriodId || isLeader) return;
+    (async () => {
+      setLoading(true);
+      try {
+        const [pending, unread, history] = await Promise.all([
+          scoreApi.getPendingList(currentPeriodId),
+          remindApi.getUnreadCount(),
+          queryApi.getMyHistory(currentPeriodId),
+        ]);
+        setPendingList(pending);
+        setUnreadCount(unread);
+        setMyHistory(history.slice(0, 5));
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [currentPeriodId, isLeader]);
+
+  const pendingCount = useMemo(() => pendingList.filter((item) => item.status !== 1).length, [pendingList]);
+  const submittedCount = useMemo(() => pendingList.filter((item) => item.status === 1).length, [pendingList]);
+  const progressPercent = useMemo(() => {
+    if (!pendingList.length) return 0;
+    return Math.round((submittedCount / pendingList.length) * 100);
+  }, [pendingList.length, submittedCount]);
+
   return (
     <Spin spinning={loading}>
-      <div>
+      <div className="dashboard-page">
         <div style={{ marginBottom: 16 }}>
           <span style={{ marginRight: 8 }}>评价周期:</span>
           <Select value={currentPeriodId} onChange={setCurrentPeriodId} style={{ width: 220 }}>
@@ -84,6 +117,87 @@ const Dashboard: React.FC = () => {
               ]}
             />
           </Card>
+        )}
+
+        {!isLeader && (
+          <>
+            <Row gutter={16} style={{ marginBottom: 16 }}>
+              <Col xs={24} md={12} lg={8}>
+                <Card>
+                  <Statistic title="待完成评价" value={pendingCount} prefix={<ClockCircleOutlined />} />
+                </Card>
+              </Col>
+              <Col xs={24} md={12} lg={8}>
+                <Card>
+                  <Statistic title="已完成评价" value={submittedCount} prefix={<CheckCircleOutlined />} />
+                </Card>
+              </Col>
+              <Col xs={24} md={24} lg={8}>
+                <Card>
+                  <Statistic title="未读消息" value={unreadCount} prefix={<BellOutlined />} />
+                </Card>
+              </Col>
+            </Row>
+
+            <Row gutter={16} style={{ marginBottom: 16 }}>
+              <Col xs={24} lg={12}>
+                <Card title="本周期进度" className="employee-progress-card">
+                  <Progress percent={progressPercent} status={progressPercent === 100 ? 'success' : 'active'} />
+                  <div className="text-muted-sm" style={{ marginTop: 8 }}>
+                    本周期共 {pendingList.length} 条评价任务，已完成 {submittedCount} 条
+                  </div>
+                  <Space style={{ marginTop: 14 }}>
+                    <Button type="primary" onClick={() => navigate('/score/pending')}>去评分</Button>
+                    <Button onClick={() => navigate('/score/submitted')}>查看已提交</Button>
+                  </Space>
+                </Card>
+              </Col>
+              <Col xs={24} lg={12}>
+                <Card title="最近评价结果">
+                  {myHistory.length ? (
+                    <div className="employee-history-list">
+                      {myHistory.map((item) => (
+                        <div key={item.recordId} className="employee-history-item">
+                          <div>{item.periodName || `周期 ${item.periodId}`}</div>
+                          <Tag color="red">{item.weightedScore ?? '-'} 分</Tag>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无评分记录" />
+                  )}
+                </Card>
+              </Col>
+            </Row>
+
+            <Card title="我的待办">
+              <Table
+                dataSource={pendingList}
+                rowKey="assignId"
+                pagination={{ pageSize: 5 }}
+                locale={{ emptyText: '当前周期暂无评价任务' }}
+                columns={[
+                  { title: '被评价人', dataIndex: 'targetName', key: 'targetName' },
+                  { title: '评价类型', dataIndex: 'evalType', key: 'evalType', render: (t: keyof typeof EvalTypeLabel) => EvalTypeLabel[t] || t },
+                  {
+                    title: '状态',
+                    dataIndex: 'status',
+                    key: 'status',
+                    render: (status: number) => (status === 1 ? <Tag color="success">已完成</Tag> : <Tag color="processing">待处理</Tag>),
+                  },
+                  {
+                    title: '操作',
+                    key: 'action',
+                    render: (_: unknown, row: PendingUser) => (
+                      <Button type="link" onClick={() => navigate('/score/pending')}>
+                        {row.status === 1 ? '查看' : '去处理'}
+                      </Button>
+                    ),
+                  },
+                ]}
+              />
+            </Card>
+          </>
         )}
       </div>
     </Spin>

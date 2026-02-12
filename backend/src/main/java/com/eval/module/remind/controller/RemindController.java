@@ -18,14 +18,14 @@ public class RemindController {
     private final RemindService remindService;
 
     @PostMapping("/send/{periodId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('remind:manage')")
     public Result<Void> sendRemind(@PathVariable Long periodId) {
         remindService.remindUnscored(periodId);
         return Result.success();
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('remind:manage')")
     public Result<List<RemindRecord>> listByPeriod(@RequestParam Long periodId) {
         return Result.success(remindService.listByPeriod(periodId));
     }

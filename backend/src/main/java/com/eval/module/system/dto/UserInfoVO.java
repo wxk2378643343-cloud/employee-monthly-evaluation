@@ -2,6 +2,8 @@ package com.eval.module.system.dto;
 
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class UserInfoVO {
 
@@ -14,4 +16,5 @@ public class UserInfoVO {
     private String groupName;
     private String role;
     private String phone;
+    private List<String> permissions;
 }

@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Card, Table, Select, Button, Tag, Space, Spin, Modal, message } from 'antd';
+import { Card, Table, Select, Button, Tag, Space, Spin, Modal } from 'antd';
+import { message } from '@/utils/message';
 import { EditOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import * as scoreApi from '@/api/score';
 import * as adminApi from '@/api/admin';
@@ -107,7 +108,7 @@ const PendingList: React.FC = () => {
         <Table dataSource={pendingList} columns={columns} rowKey="assignId" pagination={{ pageSize: 10 }} />
       </Spin>
 
-      <Modal title="提交评分" open={modalVisible} onCancel={() => setModalVisible(false)} footer={null} destroyOnClose>
+      <Modal title="提交评分" open={modalVisible} onCancel={() => setModalVisible(false)} footer={null} destroyOnHidden>
         {currentTarget && currentPeriodId && (
           <ScoreForm
             targetUser={{
@@ -128,3 +129,5 @@ const PendingList: React.FC = () => {
 };
 
 export default PendingList;
+
+

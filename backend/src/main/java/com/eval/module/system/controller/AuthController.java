@@ -2,9 +2,12 @@ package com.eval.module.system.controller;
 
 import com.eval.common.result.Result;
 import com.eval.common.utils.SecurityUtils;
+import com.eval.module.system.dto.ChangePasswordDTO;
 import com.eval.module.system.dto.LoginDTO;
+import com.eval.module.system.dto.ProfileUpdateDTO;
 import com.eval.module.system.dto.UserInfoVO;
 import com.eval.module.system.entity.SysUser;
+import com.eval.module.system.service.PermissionService;
 import com.eval.module.system.service.UserService;
 import com.eval.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +28,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserService userService;
+    private final PermissionService permissionService;
 
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@Valid @RequestBody LoginDTO loginDTO) {
@@ -40,12 +44,12 @@ public class AuthController {
         data.put("username", user.getUsername());
         data.put("realName", user.getRealName());
         data.put("role", user.getRole());
-        return Result.success("登录成功", data);
+        data.put("permissions", permissionService.getPermissionsByRole(user.getRole()));
+        return Result.success("Login success", data);
     }
 
     @PostMapping("/logout")
     public Result<Void> logout() {
-        // Stateless JWT - client side should discard token
         return Result.success();
     }
 
@@ -54,5 +58,19 @@ public class AuthController {
         Long userId = SecurityUtils.getCurrentUserId();
         UserInfoVO userInfo = userService.getUserInfo(userId);
         return Result.success(userInfo);
+    }
+
+    @PutMapping("/profile")
+    public Result<Void> updateProfile(@Valid @RequestBody ProfileUpdateDTO dto) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        userService.updateOwnProfile(userId, dto);
+        return Result.success();
+    }
+
+    @PutMapping("/password")
+    public Result<Void> changePassword(@Valid @RequestBody ChangePasswordDTO dto) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        userService.changeOwnPassword(userId, dto.getOldPassword(), dto.getNewPassword());
+        return Result.success();
     }
 }

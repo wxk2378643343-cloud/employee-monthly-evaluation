@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Card, Table, Select, Button, InputNumber, message, Space, Spin } from 'antd';
+import { Card, Table, Select, Button, InputNumber, Space, Spin } from 'antd';
+import { message } from '@/utils/message';
 import { SaveOutlined } from '@ant-design/icons';
 import * as adminApi from '@/api/admin';
 import { Department, EvalPeriod, LinearScore as LinearScoreType } from '@/types';
@@ -96,3 +97,5 @@ const LinearScore: React.FC = () => {
 };
 
 export default LinearScore;
+
+

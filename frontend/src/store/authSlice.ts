@@ -23,6 +23,7 @@ export const login = createAsyncThunk('auth/login', async (params: authApi.Login
     username: result.username,
     realName: result.realName,
     role: result.role,
+    permissions: result.permissions || [],
   } as User;
   return { token: result.token, user };
 });

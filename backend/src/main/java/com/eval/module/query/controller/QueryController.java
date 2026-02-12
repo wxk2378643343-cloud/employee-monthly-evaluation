@@ -25,7 +25,7 @@ public class QueryController {
     }
 
     @GetMapping("/history/{userId}")
-    @PreAuthorize("hasAnyRole('ADMIN','DEPT_LEADER','GROUP_LEADER')")
+    @PreAuthorize("hasAuthority('query:detail:view')")
     public Result<List<EvalHistoryVO>> getHistoryByUser(@PathVariable Long userId) {
         return Result.success(queryService.getHistoryByUserId(userId));
     }
@@ -36,14 +36,14 @@ public class QueryController {
     }
 
     @GetMapping("/ranking")
-    @PreAuthorize("hasAnyRole('ADMIN','DEPT_LEADER')")
+    @PreAuthorize("hasAuthority('query:rank:view')")
     public Result<List<RankVO>> getDeptRanking(@RequestParam Long periodId,
                                                @RequestParam(required = false) Long deptId) {
         return Result.success(queryService.getDeptRanking(periodId, deptId));
     }
 
     @GetMapping("/statistics")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('query:statistics:view')")
     public Result<Map<String, Object>> getStatistics(@RequestParam Long periodId) {
         return Result.success(queryService.getStatistics(periodId));
     }

@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Popconfirm, Tag } from 'antd';
+import { Card, Table, Button, Space, Modal, Form, Input, Select, Popconfirm, Tag } from 'antd';
+import { message } from '@/utils/message';
 import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined } from '@ant-design/icons';
 import * as adminApi from '@/api/admin';
 import { Department, Group, User, RoleLabel } from '@/types';
@@ -8,7 +9,6 @@ const GroupManage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
   const [depts, setDepts] = useState<Department[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [memberModalVisible, setMemberModalVisible] = useState(false);
   const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
@@ -18,20 +18,17 @@ const GroupManage: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [groupData, deptData, userData] = await Promise.all([
-        adminApi.getGroupList(),
-        adminApi.getDeptList(),
-        adminApi.getUserList(),
-      ]);
+      const [groupData, deptData] = await Promise.all([adminApi.getGroupList(), adminApi.getDeptList()]);
       setGroups(groupData);
       setDepts(deptData);
-      setUsers(userData);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
@@ -42,24 +39,72 @@ const GroupManage: React.FC = () => {
   };
 
   return (
-    <Card title="小组管理" extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => { setCurrentGroup(null); form.resetFields(); form.setFieldsValue({ status: 1 }); setModalVisible(true); }}>新增小组</Button>}>
+    <Card
+      title="小组管理"
+      extra={
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => {
+            setCurrentGroup(null);
+            form.resetFields();
+            form.setFieldsValue({ status: 1 });
+            setModalVisible(true);
+          }}
+        >
+          新增小组
+        </Button>
+      }
+    >
       <Table
         loading={loading}
         dataSource={groups}
         rowKey="id"
         columns={[
           { title: '小组名称', dataIndex: 'groupName', key: 'groupName' },
-          { title: '部门', dataIndex: 'deptId', key: 'deptId', render: (id: number) => depts.find((d) => d.id === id)?.deptName || '-' },
-          { title: '状态', dataIndex: 'status', key: 'status', render: (s: number) => <Tag color={s === 1 ? 'green' : 'red'}>{s === 1 ? '启用' : '禁用'}</Tag> },
+          {
+            title: '部门',
+            dataIndex: 'deptId',
+            key: 'deptId',
+            render: (id: number) => depts.find((d) => d.id === id)?.deptName || '-',
+          },
+          {
+            title: '状态',
+            dataIndex: 'status',
+            key: 'status',
+            render: (s: number) => <Tag color={s === 1 ? 'green' : 'red'}>{s === 1 ? '启用' : '禁用'}</Tag>,
+          },
           {
             title: '操作',
             key: 'action',
             render: (_: unknown, r: Group) => (
               <Space>
-                <Button type="link" icon={<TeamOutlined />} onClick={async () => { setCurrentGroup(r); setGroupMembers(await adminApi.getGroupUsers(r.id)); setMemberModalVisible(true); }}>成员</Button>
-                <Button type="link" icon={<EditOutlined />} onClick={() => { setCurrentGroup(r); form.setFieldsValue(r); setModalVisible(true); }}>编辑</Button>
+                <Button
+                  type="link"
+                  icon={<TeamOutlined />}
+                  onClick={async () => {
+                    setCurrentGroup(r);
+                    setGroupMembers(await adminApi.getGroupUsers(r.id));
+                    setMemberModalVisible(true);
+                  }}
+                >
+                  成员
+                </Button>
+                <Button
+                  type="link"
+                  icon={<EditOutlined />}
+                  onClick={() => {
+                    setCurrentGroup(r);
+                    form.setFieldsValue(r);
+                    setModalVisible(true);
+                  }}
+                >
+                  编辑
+                </Button>
                 <Popconfirm title="确认删除?" onConfirm={() => adminApi.deleteGroup(r.id).then(() => loadData())}>
-                  <Button type="link" danger icon={<DeleteOutlined />}>删除</Button>
+                  <Button type="link" danger icon={<DeleteOutlined />}>
+                    删除
+                  </Button>
                 </Popconfirm>
               </Space>
             ),
@@ -69,14 +114,18 @@ const GroupManage: React.FC = () => {
 
       <Modal title={currentGroup ? '编辑小组' : '新增小组'} open={modalVisible} onOk={handleSubmit} onCancel={() => setModalVisible(false)}>
         <Form form={form} layout="vertical">
-          <Form.Item name="groupName" label="小组名称" rules={[{ required: true, message: '请输入小组名称' }]}><Input /></Form.Item>
+          <Form.Item name="groupName" label="小组名称" rules={[{ required: true, message: '请输入小组名称' }]}>
+            <Input />
+          </Form.Item>
           <Form.Item name="deptId" label="所属部门" rules={[{ required: true, message: '请选择部门' }]}>
             <Select>{depts.map((d) => <Select.Option key={d.id} value={d.id}>{d.deptName}</Select.Option>)}</Select>
           </Form.Item>
-          <Form.Item name="status" label="状态" initialValue={1}><Select>
-            <Select.Option value={1}>启用</Select.Option>
-            <Select.Option value={0}>禁用</Select.Option>
-          </Select></Form.Item>
+          <Form.Item name="status" label="状态" initialValue={1}>
+            <Select>
+              <Select.Option value={1}>启用</Select.Option>
+              <Select.Option value={0}>禁用</Select.Option>
+            </Select>
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -98,3 +147,5 @@ const GroupManage: React.FC = () => {
 };
 
 export default GroupManage;
+
+

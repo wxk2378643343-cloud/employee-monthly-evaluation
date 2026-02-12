@@ -2,8 +2,10 @@
 import { EvalHistory, RankInfo, ScoreDetailItem } from '@/types';
 
 export function getMyHistory(periodId?: number): Promise<EvalHistory[]> {
-  return request.get('/query/my-history').then((list: EvalHistory[]) =>
-    periodId ? list.filter((item) => item.periodId === periodId) : list
+  return request.get('/query/my-history').then((res: any) => {
+    const list = Array.isArray(res) ? (res as EvalHistory[]) : [];
+    return periodId ? list.filter((item) => item.periodId === periodId) : list;
+  }
   );
 }
 

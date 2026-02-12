@@ -21,7 +21,7 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('user:manage')")
     public Result<Page<SysUser>> pageUsers(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
@@ -45,37 +45,36 @@ public class UserController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('user:manage')")
     public Result<Void> createUser(@RequestBody SysUser user) {
         userService.createUser(user);
         return Result.success();
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('user:manage')")
     public Result<Void> updateUser(@PathVariable Long id, @RequestBody SysUser user) {
         user.setId(id);
-        user.setPassword(null);
-        userService.updateById(user);
+        userService.updateUser(user);
         return Result.success();
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('user:manage')")
     public Result<Void> deleteUser(@PathVariable Long id) {
         userService.removeById(id);
         return Result.success();
     }
 
     @PostMapping("/{id}/reset-password")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('user:manage')")
     public Result<Void> resetPassword(@PathVariable Long id, @RequestParam String newPassword) {
         userService.resetPassword(id, newPassword);
         return Result.success();
     }
 
     @GetMapping("/by-group/{groupId}")
-    @PreAuthorize("hasAnyRole('ADMIN','DEPT_LEADER','GROUP_LEADER')")
+    @PreAuthorize("hasAuthority('user:group:view')")
     public Result<List<SysUser>> listByGroup(@PathVariable Long groupId) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
         SysUser currentUser = userService.getById(currentUserId);
@@ -89,7 +88,7 @@ public class UserController {
     }
 
     @GetMapping("/by-dept/{deptId}")
-    @PreAuthorize("hasAnyRole('ADMIN','DEPT_LEADER')")
+    @PreAuthorize("hasAuthority('user:dept:view')")
     public Result<List<SysUser>> listByDept(@PathVariable Long deptId) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
         SysUser currentUser = userService.getById(currentUserId);

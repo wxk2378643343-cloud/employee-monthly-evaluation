@@ -11,6 +11,7 @@ export interface LoginResult {
   username: string;
   realName: string;
   role: string;
+  permissions?: string[];
 }
 
 export function login(data: LoginParams): Promise<LoginResult> {
@@ -23,4 +24,19 @@ export function logout(): Promise<void> {
 
 export function getUserInfo(): Promise<any> {
   return request.get('/auth/info');
+}
+
+export function updateProfile(data: {
+  realName: string;
+  phone?: string;
+  dingtalkId?: string;
+}): Promise<void> {
+  return request.put('/auth/profile', data);
+}
+
+export function changePassword(data: {
+  oldPassword: string;
+  newPassword: string;
+}): Promise<void> {
+  return request.put('/auth/password', data);
 }

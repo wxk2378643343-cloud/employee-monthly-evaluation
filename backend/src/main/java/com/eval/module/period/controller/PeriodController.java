@@ -27,14 +27,14 @@ public class PeriodController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('period:manage')")
     public Result<Void> create(@RequestBody EvalPeriod period) {
         periodService.createPeriod(period);
         return Result.success();
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('period:manage')")
     public Result<Void> update(@PathVariable Long id, @RequestBody EvalPeriod period) {
         period.setId(id);
         periodService.updateById(period);
@@ -42,14 +42,14 @@ public class PeriodController {
     }
 
     @PostMapping("/{id}/start")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('period:manage')")
     public Result<Void> start(@PathVariable Long id) {
         periodService.startPeriod(id);
         return Result.success();
     }
 
     @PostMapping("/{id}/end")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('period:manage')")
     public Result<Void> end(@PathVariable Long id) {
         periodService.endPeriod(id);
         return Result.success();

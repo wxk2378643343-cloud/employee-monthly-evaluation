@@ -27,14 +27,14 @@ public class DeptController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('dept:manage')")
     public Result<Void> create(@RequestBody SysDepartment dept) {
         deptService.save(dept);
         return Result.success();
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('dept:manage')")
     public Result<Void> update(@PathVariable Long id, @RequestBody SysDepartment dept) {
         dept.setId(id);
         deptService.updateById(dept);
@@ -42,7 +42,7 @@ public class DeptController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('dept:manage')")
     public Result<Void> delete(@PathVariable Long id) {
         deptService.removeById(id);
         return Result.success();

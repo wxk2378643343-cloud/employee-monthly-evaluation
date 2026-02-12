@@ -21,7 +21,7 @@ const Layout: React.FC = () => {
       return;
     }
 
-    if (!user && token) {
+    if (token && (!user || !Array.isArray(user.permissions))) {
       dispatch(fetchUserInfo());
     }
 

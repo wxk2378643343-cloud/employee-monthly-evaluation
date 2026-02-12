@@ -154,3 +154,22 @@ CREATE TABLE IF NOT EXISTS remind_record (
 INSERT INTO sys_user (username, password, real_name, role, status)
 VALUES ('admin', '$2a$10$n6iGSjgj87ygQPMhe7zgXe53mgCMmbxiWbPpfatH5n/xjS2MOchGy', 'System Admin', 'ADMIN', 1)
 ON DUPLICATE KEY UPDATE password = '$2a$10$n6iGSjgj87ygQPMhe7zgXe53mgCMmbxiWbPpfatH5n/xjS2MOchGy';
+
+CREATE TABLE IF NOT EXISTS sys_role (
+    id            BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Role ID',
+    role_code     VARCHAR(50) NOT NULL COMMENT 'Role Code',
+    role_name     VARCHAR(100) NOT NULL COMMENT 'Role Name',
+    sort_order    INT DEFAULT 0 COMMENT 'Sort Order',
+    status        TINYINT DEFAULT 1 COMMENT 'Status 1-Enabled 0-Disabled',
+    create_time   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Create Time',
+    update_time   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Update Time',
+    deleted       TINYINT DEFAULT 0 COMMENT 'Logical Delete',
+    UNIQUE INDEX uk_role_code (role_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='System Roles';
+
+INSERT INTO sys_role (role_code, role_name, sort_order, status)
+VALUES ('ADMIN', '管理员', 1, 1),
+       ('DEPT_LEADER', '部门负责人', 2, 1),
+       ('GROUP_LEADER', '网格负责人', 3, 1),
+       ('EMPLOYEE', '员工', 4, 1)
+ON DUPLICATE KEY UPDATE role_name = VALUES(role_name), sort_order = VALUES(sort_order), status = VALUES(status);

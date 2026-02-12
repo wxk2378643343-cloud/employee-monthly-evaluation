@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Card, Table, Button, Space, Modal, Form, Input, InputNumber, Select, message, Popconfirm, Tag } from 'antd';
+import { Card, Table, Button, Space, Modal, Form, Input, InputNumber, Select, Popconfirm, Tag } from 'antd';
+import { message } from '@/utils/message';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import * as adminApi from '@/api/admin';
 import { Department } from '@/types';
@@ -72,3 +73,5 @@ const DeptManage: React.FC = () => {
 };
 
 export default DeptManage;
+
+

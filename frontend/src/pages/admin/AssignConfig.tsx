@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Card, Table, Select, Button, Space, message, Modal, Form, InputNumber } from 'antd';
+import { Card, Table, Select, Button, Space, Modal, Form, InputNumber } from 'antd';
+import { message } from '@/utils/message';
 import { CopyOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import * as adminApi from '@/api/admin';
 import { AssignRow, EvalPeriod, EvalType, EvalTypeLabel, User } from '@/types';
@@ -123,3 +124,5 @@ const AssignConfig: React.FC = () => {
 };
 
 export default AssignConfig;
+
+

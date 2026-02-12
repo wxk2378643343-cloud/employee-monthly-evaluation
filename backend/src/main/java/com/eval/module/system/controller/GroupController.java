@@ -27,14 +27,14 @@ public class GroupController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('group:manage')")
     public Result<Void> create(@RequestBody SysGroup group) {
         groupService.save(group);
         return Result.success();
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('group:manage')")
     public Result<Void> update(@PathVariable Long id, @RequestBody SysGroup group) {
         group.setId(id);
         groupService.updateById(group);
@@ -42,7 +42,7 @@ public class GroupController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('group:manage')")
     public Result<Void> delete(@PathVariable Long id) {
         groupService.removeById(id);
         return Result.success();

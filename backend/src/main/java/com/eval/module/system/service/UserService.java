@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.eval.common.exception.BusinessException;
+import com.eval.module.system.dto.ProfileUpdateDTO;
 import com.eval.module.system.dto.UserInfoVO;
 import com.eval.module.system.entity.SysDepartment;
 import com.eval.module.system.entity.SysGroup;
@@ -24,6 +25,8 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
     private final SysDepartmentMapper deptMapper;
     private final SysGroupMapper groupMapper;
     private final PasswordEncoder passwordEncoder;
+    private final RoleService roleService;
+    private final PermissionService permissionService;
 
     public SysUser getByUsername(String username) {
         return getOne(new LambdaQueryWrapper<SysUser>()
@@ -34,7 +37,7 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
     public UserInfoVO getUserInfo(Long userId) {
         SysUser user = getById(userId);
         if (user == null) {
-            throw new BusinessException("用户不存在");
+            throw new BusinessException("User not found");
         }
         UserInfoVO vo = new UserInfoVO();
         vo.setId(user.getId());
@@ -44,6 +47,7 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
         vo.setGroupId(user.getGroupId());
         vo.setRole(user.getRole());
         vo.setPhone(user.getPhone());
+        vo.setPermissions(permissionService.getPermissionsByRole(user.getRole()));
 
         if (user.getDeptId() != null) {
             SysDepartment dept = deptMapper.selectById(user.getDeptId());
@@ -86,16 +90,60 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
     public void createUser(SysUser user) {
         SysUser existing = getByUsername(user.getUsername());
         if (existing != null) {
-            throw new BusinessException("用户名已存在");
+            throw new BusinessException("Username already exists");
         }
+        roleService.validateAssignableRole(user.getRole());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         save(user);
+    }
+
+    public void updateUser(SysUser payload) {
+        SysUser existing = getById(payload.getId());
+        if (existing == null) {
+            throw new BusinessException("User not found");
+        }
+        if (payload.getRole() != null) {
+            roleService.validateAssignableRole(payload.getRole());
+            existing.setRole(payload.getRole());
+        }
+        existing.setRealName(payload.getRealName());
+        existing.setDeptId(payload.getDeptId());
+        existing.setGroupId(payload.getGroupId());
+        existing.setPhone(payload.getPhone());
+        existing.setStatus(payload.getStatus());
+        updateById(existing);
     }
 
     public void resetPassword(Long userId, String newPassword) {
         SysUser user = getById(userId);
         if (user == null) {
-            throw new BusinessException("用户不存在");
+            throw new BusinessException("User not found");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        updateById(user);
+    }
+
+    public void updateOwnProfile(Long userId, ProfileUpdateDTO dto) {
+        SysUser user = getById(userId);
+        if (user == null) {
+            throw new BusinessException(404, "User not found");
+        }
+        user.setRealName(dto.getRealName());
+        user.setPhone(dto.getPhone());
+        user.setDingtalkId(dto.getDingtalkId());
+        updateById(user);
+    }
+
+    public void changeOwnPassword(Long userId, String oldPassword, String newPassword) {
+        SysUser user = getById(userId);
+        if (user == null) {
+            throw new BusinessException(404, "User not found");
+        }
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BusinessException(400, "Old password is incorrect");
+        }
+        if (oldPassword.equals(newPassword)) {
+            throw new BusinessException(400, "New password must be different from old password");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
         updateById(user);

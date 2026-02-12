@@ -5,6 +5,7 @@ import com.eval.module.vote.dto.VoteSubmitDTO;
 import com.eval.module.vote.entity.EvalVote;
 import com.eval.module.vote.service.VoteService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -13,6 +14,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/votes")
+@PreAuthorize("hasAuthority('vote:view')")
 @RequiredArgsConstructor
 public class VoteController {
 

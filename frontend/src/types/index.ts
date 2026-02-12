@@ -1,6 +1,6 @@
 ﻿// Shared domain models aligned with backend contracts
 
-export type UserRole = 'ADMIN' | 'DEPT_LEADER' | 'GROUP_LEADER' | 'EMPLOYEE';
+export type UserRole = string;
 
 export const Role = {
   ADMIN: 'ADMIN',
@@ -9,7 +9,7 @@ export const Role = {
   EMPLOYEE: 'EMPLOYEE',
 } as const;
 
-export const RoleLabel: Record<UserRole, string> = {
+export const RoleLabel: Record<string, string> = {
   ADMIN: '管理员',
   DEPT_LEADER: '部门负责人',
   GROUP_LEADER: '小组负责人',
@@ -44,8 +44,17 @@ export interface User {
   groupId?: number;
   groupName?: string;
   role: UserRole;
+  permissions?: string[];
   phone?: string;
   status?: number;
+}
+
+export interface SystemRole {
+  id: number;
+  roleCode: string;
+  roleName: string;
+  sortOrder?: number;
+  status: number;
 }
 
 export interface EvalPeriod {
