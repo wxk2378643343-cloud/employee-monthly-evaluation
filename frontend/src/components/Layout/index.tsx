@@ -41,25 +41,12 @@ const Layout: React.FC = () => {
   }
 
   return (
-    <AntLayout style={{ minHeight: '100vh' }}>
+    <AntLayout className="app-layout">
       <Header />
       <AntLayout>
         <Sidebar />
-        <Content
-          style={{
-            padding: 24,
-            background: '#f5f5f5',
-            minHeight: 'calc(100vh - 64px)',
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              padding: 24,
-              borderRadius: 8,
-              minHeight: 'calc(100vh - 112px)',
-            }}
-          >
+        <Content className="app-content">
+          <div className="app-content__inner">
             <Outlet />
           </div>
         </Content>

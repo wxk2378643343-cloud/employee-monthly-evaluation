@@ -9,6 +9,8 @@ import GroupManage from '@/pages/admin/GroupManage';
 import AssignConfig from '@/pages/admin/AssignConfig';
 import LinearScore from '@/pages/admin/LinearScore';
 import PeriodManage from '@/pages/admin/PeriodManage';
+import DeptManage from '@/pages/admin/DeptManage';
+import UserManage from '@/pages/admin/UserManage';
 import PendingList from '@/pages/score/PendingList';
 import SubmittedList from '@/pages/score/SubmittedList';
 import VotePage from '@/pages/score/VotePage';
@@ -27,6 +29,8 @@ const App: React.FC = () => {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             {/* 管理员模块 */}
+            <Route path="admin/depts" element={<DeptManage />} />
+            <Route path="admin/users" element={<UserManage />} />
             <Route path="admin/groups" element={<GroupManage />} />
             <Route path="admin/assign" element={<AssignConfig />} />
             <Route path="admin/linear-score" element={<LinearScore />} />

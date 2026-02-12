@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/query")
@@ -37,7 +38,13 @@ public class QueryController {
     @GetMapping("/ranking")
     @PreAuthorize("hasAnyRole('ADMIN','DEPT_LEADER')")
     public Result<List<RankVO>> getDeptRanking(@RequestParam Long periodId,
-                                                @RequestParam(required = false) Long deptId) {
+                                               @RequestParam(required = false) Long deptId) {
         return Result.success(queryService.getDeptRanking(periodId, deptId));
+    }
+
+    @GetMapping("/statistics")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Result<Map<String, Object>> getStatistics(@RequestParam Long periodId) {
+        return Result.success(queryService.getStatistics(periodId));
     }
 }

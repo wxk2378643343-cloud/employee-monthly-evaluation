@@ -1,82 +1,116 @@
-import request from '@/utils/request';
-import { Group, ScoreAssign, LinearScore, EvalPeriod, User, Department } from '@/types';
+﻿import request from '@/utils/request';
+import { Group, AssignRow, LinearScore, EvalPeriod, User, Department, PeriodStatus } from '@/types';
 
-// 获取部门列表
 export function getDeptList(): Promise<Department[]> {
-  return request.get('/admin/dept/list');
+  return request.get('/depts');
 }
 
-// 获取小组列表
+export function saveDept(data: Partial<Department>): Promise<void> {
+  if (data.id) return request.put(`/depts/${data.id}`, data);
+  return request.post('/depts', data);
+}
+
+export function deleteDept(id: number): Promise<void> {
+  return request.delete(`/depts/${id}`);
+}
+
 export function getGroupList(deptId?: number): Promise<Group[]> {
-  return request.get('/admin/group/list', { params: { deptId } });
+  if (deptId) return request.get(`/groups/by-dept/${deptId}`);
+  return request.get('/groups');
 }
 
-// 新增/编辑小组
 export function saveGroup(data: Partial<Group>): Promise<void> {
-  return request.post('/admin/group', data);
+  if (data.id) return request.put(`/groups/${data.id}`, data);
+  return request.post('/groups', data);
 }
 
-// 删除小组
 export function deleteGroup(id: number): Promise<void> {
-  return request.delete(`/admin/group/${id}`);
+  return request.delete(`/groups/${id}`);
 }
 
-// 获取小组下的员工
 export function getGroupUsers(groupId: number): Promise<User[]> {
-  return request.get(`/admin/group/${groupId}/users`);
+  return request.get(`/users/by-group/${groupId}`);
 }
 
-// 获取所有领导列表（用于分配配置）
 export function getLeaderList(): Promise<User[]> {
-  return request.get('/admin/leaders');
+  return getUserList().then((list) =>
+    list.filter((u) => ['ADMIN', 'DEPT_LEADER', 'GROUP_LEADER'].includes(u.role))
+  );
 }
 
-// 获取某周期的打分分配
-export function getAssignList(periodId: number): Promise<ScoreAssign[]> {
-  return request.get('/admin/assign/list', { params: { periodId } });
+export function getUserList(params?: { deptId?: number; role?: string; keyword?: string }): Promise<User[]> {
+  return request
+    .get('/users', { params: { pageSize: 1000, ...params } })
+    .then((res: any) => (Array.isArray(res?.records) ? res.records : []));
 }
 
-// 保存打分分配
-export function saveAssign(data: { periodId: number; assignments: ScoreAssign[] }): Promise<void> {
-  return request.post('/admin/assign/save', data);
+export function saveUser(data: Partial<User> & { password?: string }): Promise<void> {
+  if (data.id) return request.put(`/users/${data.id}`, data);
+  return request.post('/users', data);
 }
 
-// 从上期复制分配方案
+export function resetUserPassword(id: number, newPassword: string): Promise<void> {
+  return request.post(`/users/${id}/reset-password`, null, { params: { newPassword } });
+}
+
+export function deleteUser(id: number): Promise<void> {
+  return request.delete(`/users/${id}`);
+}
+
+export function getAssignList(periodId: number): Promise<AssignRow[]> {
+  return request.get('/admin/assigns', { params: { periodId } });
+}
+
+export function saveAssign(data: { periodId: number; assignments: AssignRow[] }): Promise<void> {
+  return request.post(
+    '/admin/assigns/batch',
+    data.assignments.map((a) => ({
+      periodId: data.periodId,
+      scorerId: a.scorerId,
+      targetId: a.targetId,
+      evalType: a.evalType,
+      weight: a.weight ?? 0,
+    }))
+  );
+}
+
+export function deleteAssign(id: number): Promise<void> {
+  return request.delete(`/admin/assigns/${id}`);
+}
+
 export function copyAssign(data: { sourcePeriodId: number; targetPeriodId: number }): Promise<void> {
-  return request.post('/admin/assign/copy', data);
+  return request.post('/admin/assigns/copy', null, { params: data });
 }
 
-// 获取线性排名分列表
 export function getLinearScoreList(periodId: number, deptId?: number): Promise<LinearScore[]> {
-  return request.get('/admin/linear-score/list', { params: { periodId, deptId } });
+  return request.get('/admin/linear-scores', { params: { periodId, deptId } });
 }
 
-// 批量设置线性排名分
-export function saveLinearScores(data: { periodId: number; scores: { userId: number; linearRankScore: number }[] }): Promise<void> {
-  return request.post('/admin/linear-score/save', data);
+export function saveLinearScores(data: {
+  periodId: number;
+  scores: { targetId: number; linearRankScore: number }[];
+}): Promise<void> {
+  return request.post(
+    '/admin/linear-scores/batch',
+    data.scores.map((s) => ({
+      periodId: data.periodId,
+      targetId: s.targetId,
+      linearRankScore: s.linearRankScore,
+    }))
+  );
 }
 
-// 获取评价周期列表
 export function getPeriodList(): Promise<EvalPeriod[]> {
-  return request.get('/admin/period/list');
+  return request.get('/periods');
 }
 
-// 新增/编辑评价周期
 export function savePeriod(data: Partial<EvalPeriod>): Promise<void> {
-  return request.post('/admin/period', data);
+  if (data.id) return request.put(`/periods/${data.id}`, data);
+  return request.post('/periods', data);
 }
 
-// 更新周期状态
-export function updatePeriodStatus(id: number, status: number): Promise<void> {
-  return request.put(`/admin/period/${id}/status`, { status });
-}
-
-// 获取用户列表
-export function getUserList(params?: { deptId?: number; groupId?: number; roleType?: number }): Promise<User[]> {
-  return request.get('/admin/user/list', { params });
-}
-
-// 新增/编辑用户
-export function saveUser(data: Partial<User>): Promise<void> {
-  return request.post('/admin/user', data);
+export function updatePeriodStatus(id: number, status: PeriodStatus): Promise<void> {
+  if (status === PeriodStatus.IN_PROGRESS) return request.post(`/periods/${id}/start`);
+  if (status === PeriodStatus.ENDED) return request.post(`/periods/${id}/end`);
+  return request.put(`/periods/${id}`, { status });
 }

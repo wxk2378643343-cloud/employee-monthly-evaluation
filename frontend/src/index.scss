@@ -1,0 +1,541 @@
+// ========== 联通红主题变量 ==========
+$primary: #D32F2F;
+$primary-light: #EF5350;
+$primary-dark: #B71C1C;
+$primary-bg: #FFF5F5;
+$primary-border: #FFCDD2;
+$primary-shadow: rgba($primary, 0.25);
+
+// 功能色
+$success: #3f8600;
+$warning: #faad14;
+$danger: #cf1322;
+$purple: #722ed1;
+
+// 中性色
+$text-primary: #333;
+$text-secondary: #666;
+$text-muted: #999;
+$text-white: #fff;
+
+// 背景 & 边框
+$bg-page: #f5f5f5;
+$bg-card: #fff;
+$border-light: #f0f0f0;
+$unread-bg: #f6ffed;
+
+// 侧边栏
+$sider-bg: #1a1a2e;
+
+// ========== Reset ==========
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// ========== 文本工具类 ==========
+.text-muted {
+  color: $text-muted;
+}
+
+.text-secondary {
+  color: $text-secondary;
+}
+
+.text-white {
+  color: $text-white;
+}
+
+.text-muted-sm {
+  font-size: 12px;
+  color: $text-muted;
+}
+
+// ========== 分数高亮 ==========
+.score-highlight {
+  font-weight: bold;
+  color: $primary;
+}
+
+.score-highlight-lg {
+  font-size: 20px;
+  font-weight: bold;
+  color: $primary;
+}
+
+// ========== Statistic 颜色 ==========
+.stat-success .ant-statistic-content-value {
+  color: $success;
+}
+
+.stat-warning .ant-statistic-content-value {
+  color: $warning;
+}
+
+.stat-danger .ant-statistic-content-value {
+  color: $danger;
+}
+
+// ========== 提示文本 ==========
+.hint-text {
+  margin-bottom: 16px;
+  color: $text-secondary;
+}
+
+// ========== Dashboard 欢迎区 ==========
+.welcome-section {
+  text-align: center;
+  padding: 40px;
+
+  p {
+    color: $text-secondary;
+  }
+}
+
+// ========== 登录页 - 左右分屏 ==========
+.login-page {
+  min-height: 100vh;
+  display: flex;
+}
+
+// 左侧品牌区
+.login-brand {
+  position: relative;
+  width: 45%;
+  background: linear-gradient(160deg, $primary-light 0%, $primary 40%, $primary-dark 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 60px;
+
+  &__inner {
+    position: relative;
+    z-index: 1;
+    color: #fff;
+  }
+
+  &__icon {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 24px;
+
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  &__title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+
+  &__desc {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 48px;
+    line-height: 1.6;
+  }
+
+  &__features {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__feature {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    flex-shrink: 0;
+  }
+
+  // 装饰圆
+  &__circle {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+
+    &--1 {
+      width: 300px;
+      height: 300px;
+      top: -80px;
+      right: -60px;
+    }
+
+    &--2 {
+      width: 200px;
+      height: 200px;
+      bottom: -40px;
+      left: -50px;
+    }
+
+    &--3 {
+      width: 120px;
+      height: 120px;
+      bottom: 20%;
+      right: 10%;
+      background: rgba(255, 255, 255, 0.06);
+    }
+  }
+}
+
+// 右侧表单区
+.login-form-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+  padding: 40px;
+}
+
+.login-form-container {
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-form-header {
+  margin-bottom: 40px;
+
+  h2 {
+    font-size: 28px;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 8px;
+  }
+
+  p {
+    font-size: 14px;
+    color: $text-muted;
+  }
+}
+
+.login-input-icon {
+  color: $text-muted;
+}
+
+.login-footer {
+  text-align: center;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid $border-light;
+
+  span {
+    font-size: 12px;
+    color: $text-muted;
+  }
+}
+
+// 响应式：移动端隐藏左侧
+@media (max-width: 768px) {
+  .login-brand {
+    display: none;
+  }
+
+  .login-form-wrapper {
+    padding: 24px;
+  }
+}
+
+// ========== 顶栏 Header ==========
+.app-header {
+  background: $primary !important;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px $primary-shadow;
+}
+
+.app-header__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-white;
+}
+
+.app-header__bell {
+  font-size: 20px;
+  cursor: pointer;
+  color: $text-white;
+}
+
+.app-header__user {
+  cursor: pointer;
+  color: $text-white;
+}
+
+.app-header__avatar {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+// ========== 提醒弹窗 ==========
+.remind-popover {
+  width: 350px;
+  max-height: 400px;
+  overflow: auto;
+}
+
+.remind-item {
+  cursor: pointer;
+  padding: 12px 0;
+}
+
+.remind-time {
+  font-size: 12px;
+  color: $text-muted;
+  margin-top: 4px;
+}
+
+.remind-footer {
+  text-align: center;
+  padding: 8px 0;
+  border-top: 1px solid $border-light;
+}
+
+// ========== 布局 ==========
+.app-layout {
+  min-height: 100vh;
+}
+
+.app-content {
+  padding: 24px;
+  background: $bg-page;
+  min-height: calc(100vh - 64px);
+}
+
+.app-content__inner {
+  background: $bg-card;
+  padding: 24px;
+  border-radius: 8px;
+  min-height: calc(100vh - 112px);
+}
+
+// ========== 消息列表 ==========
+.remind-list-item {
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+
+  &--unread {
+    background: $unread-bg;
+  }
+}
+
+// ========== 投票信息 ==========
+.vote-info {
+  margin-bottom: 16px;
+}
+
+// ========== Ant Design 主题覆盖 ==========
+
+// 主按钮
+.ant-btn-primary {
+  background-color: $primary !important;
+  border-color: $primary !important;
+
+  &:hover {
+    background-color: $primary-light !important;
+    border-color: $primary-light !important;
+  }
+
+  &:active {
+    background-color: $primary-dark !important;
+    border-color: $primary-dark !important;
+  }
+}
+
+// 链接按钮
+.ant-btn-link {
+  color: $primary !important;
+
+  &:hover {
+    color: $primary-light !important;
+  }
+}
+
+// 链接
+a {
+  color: $primary;
+
+  &:hover {
+    color: $primary-light;
+  }
+}
+
+// 侧边栏菜单 - 深色风格
+.ant-layout-sider {
+  background: $sider-bg !important;
+
+  .ant-menu {
+    background: $sider-bg !important;
+    color: rgba(255, 255, 255, 0.75) !important;
+    border-right: none !important;
+
+    .ant-menu-item {
+      color: rgba(255, 255, 255, 0.75) !important;
+
+      &:hover {
+        color: #fff !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+      }
+
+      &-selected {
+        background: $primary !important;
+        color: #fff !important;
+      }
+    }
+
+    .ant-menu-submenu-title {
+      color: rgba(255, 255, 255, 0.75) !important;
+
+      &:hover {
+        color: #fff !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+      }
+    }
+
+    .ant-menu-submenu-open > .ant-menu-submenu-title {
+      color: #fff !important;
+    }
+
+    .ant-menu-sub {
+      background: rgba(0, 0, 0, 0.2) !important;
+    }
+
+    .ant-menu-submenu-arrow::before,
+    .ant-menu-submenu-arrow::after {
+      background: rgba(255, 255, 255, 0.75) !important;
+    }
+
+    .ant-menu-item .ant-menu-item-icon,
+    .ant-menu-submenu-title .ant-menu-item-icon,
+    .ant-menu-item .anticon,
+    .ant-menu-submenu-title .anticon {
+      color: inherit !important;
+    }
+  }
+}
+
+// 分页器
+.ant-pagination-item-active {
+  border-color: $primary !important;
+
+  a {
+    color: $primary !important;
+  }
+}
+
+// Switch
+.ant-switch-checked {
+  background: $primary !important;
+}
+
+// Checkbox
+.ant-checkbox-checked .ant-checkbox-inner {
+  background-color: $primary !important;
+  border-color: $primary !important;
+}
+
+// Radio
+.ant-radio-checked .ant-radio-inner {
+  border-color: $primary !important;
+
+  &::after {
+    background-color: $primary !important;
+  }
+}
+
+// Tabs
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: $primary !important;
+}
+
+.ant-tabs-ink-bar {
+  background: $primary !important;
+}
+
+// Select
+.ant-select-focused .ant-select-selector {
+  border-color: $primary !important;
+  box-shadow: 0 0 0 2px rgba($primary, 0.1) !important;
+}
+
+.ant-select-item-option-selected {
+  background-color: $primary-bg !important;
+}
+
+// Input
+.ant-input:focus,
+.ant-input-focused,
+.ant-input:hover {
+  border-color: $primary !important;
+}
+
+.ant-input:focus,
+.ant-input-focused {
+  box-shadow: 0 0 0 2px rgba($primary, 0.1) !important;
+}
+
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused {
+  border-color: $primary !important;
+  box-shadow: 0 0 0 2px rgba($primary, 0.1) !important;
+}
+
+// Badge
+.ant-badge .ant-badge-count {
+  background: $primary !important;
+}
+
+// ========== 表格行状态 ==========
+.row-warning {
+  background-color: #fff1f0 !important;
+}
+
+.row-bottom {
+  background-color: #fff7e6 !important;
+}
+
+// ========== 滚动条 ==========
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+
+  &:hover {
+    background: #a8a8a8;
+  }
+}

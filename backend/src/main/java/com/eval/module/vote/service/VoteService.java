@@ -37,7 +37,7 @@ public class VoteService extends ServiceImpl<EvalVoteMapper, EvalVote> {
             throw new BusinessException("用户不存在");
         }
         if (voter.getGroupId() == null || !voter.getGroupId().equals(candidate.getGroupId())) {
-            throw new BusinessException("只能在同小组内投票");
+            throw new BusinessException("只能在同网格内投票");
         }
 
         // Check duplicate vote

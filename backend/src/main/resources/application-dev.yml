@@ -1,15 +1,15 @@
-spring:
+﻿spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/eval_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
 
   redis:
-    host: localhost
-    port: 6379
-    password:
-    database: 0
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DB:0}
     timeout: 5000ms
     lettuce:
       pool:
@@ -18,5 +18,5 @@ spring:
         min-idle: 0
 
 dingtalk:
-  webhook-url: https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN
-  secret: YOUR_SECRET
+  webhook-url: ${DINGTALK_WEBHOOK_URL:https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN}
+  secret: ${DINGTALK_SECRET:YOUR_SECRET}

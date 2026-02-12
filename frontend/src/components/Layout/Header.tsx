@@ -1,32 +1,14 @@
-import React from 'react';
+﻿import React from 'react';
 import { Layout, Avatar, Dropdown, Space, Badge, Popover, List, Button, Empty, Tag } from 'antd';
-import {
-  UserOutlined,
-  LogoutOutlined,
-  BellOutlined,
-  EditOutlined,
-  ClockCircleOutlined,
-  CheckSquareOutlined,
-  WarningOutlined,
-} from '@ant-design/icons';
+import { UserOutlined, LogoutOutlined, BellOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { logout } from '@/store/authSlice';
 import { fetchUnreadReminds, markRead, markAllRead } from '@/store/remindSlice';
-import { RoleTypeLabel, RemindType } from '@/types';
+import { RoleLabel } from '@/types';
 import type { MenuProps } from 'antd';
 
 const { Header: AntHeader } = Layout;
-
-const remindTypeConfig: Record<
-  RemindType,
-  { icon: React.ReactNode; color: string; label: string }
-> = {
-  [RemindType.PENDING]: { icon: <EditOutlined />, color: '#1890ff', label: '待评价' },
-  [RemindType.DEADLINE]: { icon: <ClockCircleOutlined />, color: '#faad14', label: '即将截止' },
-  [RemindType.VOTE]: { icon: <CheckSquareOutlined />, color: '#722ed1', label: '投票' },
-  [RemindType.WARNING]: { icon: <WarningOutlined />, color: '#f5222d', label: '预警' },
-};
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -46,87 +28,36 @@ const Header: React.FC = () => {
       label: (
         <div>
           <div>{user?.realName}</div>
-          <div style={{ fontSize: 12, color: '#999' }}>
-            {user?.roleType && RoleTypeLabel[user.roleType]}
-          </div>
+          <div className="text-muted-sm">{user?.role ? RoleLabel[user.role] : ''}</div>
         </div>
       ),
       disabled: true,
     },
     { type: 'divider' },
-    {
-      key: 'logout',
-      icon: <LogoutOutlined />,
-      label: '退出登录',
-      onClick: handleLogout,
-    },
+    { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', onClick: handleLogout },
   ];
 
-  const handlePopoverOpenChange = (open: boolean) => {
-    setPopoverOpen(open);
-    if (open) {
-      dispatch(fetchUnreadReminds());
-    }
-  };
-
-  const handleRemindClick = (id: number) => {
-    dispatch(markRead(id));
-  };
-
-  const handleMarkAllRead = () => {
-    dispatch(markAllRead());
-    setPopoverOpen(false);
-  };
-
   const remindContent = (
-    <div style={{ width: 350, maxHeight: 400, overflow: 'auto' }}>
+    <div className="remind-popover">
       {reminds.length > 0 ? (
         <>
           <List
             loading={loading}
             dataSource={reminds}
-            renderItem={(item) => {
-              const config = remindTypeConfig[item.remindType as RemindType];
-              return (
-                <List.Item
-                  style={{ cursor: 'pointer', padding: '12px 0' }}
-                  onClick={() => handleRemindClick(item.id)}
-                >
-                  <List.Item.Meta
-                    avatar={
-                      <Avatar
-                        icon={config?.icon}
-                        style={{ backgroundColor: config?.color }}
-                      />
-                    }
-                    title={<Tag color={config?.color}>{config?.label}</Tag>}
-                    description={
-                      <div>
-                        <div>{item.remindContent}</div>
-                        <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
-                          {item.createTime}
-                        </div>
-                      </div>
-                    }
-                  />
-                </List.Item>
-              );
-            }}
+            renderItem={(item) => (
+              <List.Item className="remind-item" onClick={() => dispatch(markRead(item.id))}>
+                <List.Item.Meta
+                  avatar={<Avatar icon={<BellOutlined />} />}
+                  title={<Tag>{item.remindType}</Tag>}
+                  description={<div><div>{item.remindContent}</div><div className="remind-time">{item.createTime}</div></div>}
+                />
+              </List.Item>
+            )}
           />
-          <div style={{ textAlign: 'center', padding: '8px 0', borderTop: '1px solid #f0f0f0' }}>
+          <div className="remind-footer">
             <Space>
-              <Button type="link" onClick={handleMarkAllRead}>
-                全部已读
-              </Button>
-              <Button
-                type="link"
-                onClick={() => {
-                  setPopoverOpen(false);
-                  navigate('/remind/list');
-                }}
-              >
-                查看全部
-              </Button>
+              <Button type="link" onClick={() => { dispatch(markAllRead()); setPopoverOpen(false); }}>全部已读</Button>
+              <Button type="link" onClick={() => { setPopoverOpen(false); navigate('/remind/list'); }}>查看全部</Button>
             </Space>
           </div>
         </>
@@ -137,32 +68,26 @@ const Header: React.FC = () => {
   );
 
   return (
-    <AntHeader
-      style={{
-        background: '#fff',
-        padding: '0 24px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        boxShadow: '0 1px 4px rgba(0, 21, 41, 0.08)',
-      }}
-    >
-      <div style={{ fontSize: 18, fontWeight: 600 }}>员工月度评价系统</div>
+    <AntHeader className="app-header">
+      <div className="app-header__title">员工月度评价系统</div>
       <Space size={24}>
         <Popover
           content={remindContent}
           trigger="click"
           open={popoverOpen}
-          onOpenChange={handlePopoverOpenChange}
+          onOpenChange={(open) => {
+            setPopoverOpen(open);
+            if (open) dispatch(fetchUnreadReminds());
+          }}
           placement="bottomRight"
         >
           <Badge count={unreadCount} size="small">
-            <BellOutlined style={{ fontSize: 20, cursor: 'pointer' }} />
+            <BellOutlined className="app-header__bell" />
           </Badge>
         </Popover>
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-          <Space style={{ cursor: 'pointer' }}>
-            <Avatar icon={<UserOutlined />} />
+          <Space className="app-header__user">
+            <Avatar icon={<UserOutlined />} className="app-header__avatar" />
             <span>{user?.realName}</span>
           </Space>
         </Dropdown>

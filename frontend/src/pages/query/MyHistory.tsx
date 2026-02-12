@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Card, Table, Select, Spin, Empty } from 'antd';
+﻿import React, { useEffect, useState } from 'react';
+import { Card, Table, Select, Spin } from 'antd';
 import * as queryApi from '@/api/query';
 import * as adminApi from '@/api/admin';
-import type { EvalPeriod, EvalHistory } from '@/types';
+import { EvalHistory, EvalPeriod } from '@/types';
 
 const MyHistory: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -11,84 +11,50 @@ const MyHistory: React.FC = () => {
   const [history, setHistory] = useState<EvalHistory[]>([]);
 
   useEffect(() => {
-    loadPeriods();
+    (async () => {
+      const data = await adminApi.getPeriodList();
+      setPeriods(data);
+      if (data.length > 0) setCurrentPeriodId(data[0].id);
+    })();
   }, []);
 
   useEffect(() => {
-    loadHistory();
+    (async () => {
+      setLoading(true);
+      try {
+        const data = await queryApi.getMyHistory(currentPeriodId);
+        setHistory(data);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [currentPeriodId]);
 
-  const loadPeriods = async () => {
-    try {
-      const data = await adminApi.getPeriodList();
-      setPeriods(data);
-    } catch {
-      // 忽略
-    }
-  };
-
-  const loadHistory = async () => {
-    setLoading(true);
-    try {
-      const data = await queryApi.getMyHistory(currentPeriodId);
-      setHistory(data);
-    } catch {
-      // 忽略
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const columns = [
-    { title: '评价周期', dataIndex: 'periodName', key: 'periodName' },
-    {
-      title: '评价人',
-      dataIndex: 'evaluatorName',
-      key: 'evaluatorName',
-      render: (name: string) => <span style={{ color: '#666' }}>{name}</span>,
-    },
-    {
-      title: '评语',
-      dataIndex: 'comment',
-      key: 'comment',
-      render: (text: string) => text || <span style={{ color: '#999' }}>无评语</span>,
-    },
-    { title: '评价时间', dataIndex: 'createTime', key: 'createTime' },
+    { title: '周期', dataIndex: 'periodName', key: 'periodName' },
+    { title: '自评', dataIndex: 'selfScore', key: 'selfScore' },
+    { title: '同级', dataIndex: 'peerScore', key: 'peerScore' },
+    { title: '组长', dataIndex: 'groupLeaderScore', key: 'groupLeaderScore' },
+    { title: '部门负责人', dataIndex: 'deptLeaderScore', key: 'deptLeaderScore' },
+    { title: '管理员', dataIndex: 'adminScore', key: 'adminScore' },
+    { title: '综合分', dataIndex: 'weightedScore', key: 'weightedScore' },
+    { title: '线性分', dataIndex: 'linearRankScore', key: 'linearRankScore' },
+    { title: '部门排名', dataIndex: 'deptRank', key: 'deptRank' },
   ];
 
   return (
     <Card
-      title="我的互评历史"
+      title="我的历史"
       extra={
-        <Select
-          value={currentPeriodId}
-          onChange={setCurrentPeriodId}
-          style={{ width: 200 }}
-          placeholder="全部周期"
-          allowClear
-        >
+        <Select value={currentPeriodId} onChange={setCurrentPeriodId} style={{ width: 220 }} allowClear>
           {periods.map((p) => (
-            <Select.Option key={p.id} value={p.id}>
-              {p.periodName}
-            </Select.Option>
+            <Select.Option key={p.id} value={p.id}>{p.periodName}</Select.Option>
           ))}
         </Select>
       }
     >
       <Spin spinning={loading}>
-        <div style={{ marginBottom: 16, color: '#666' }}>
-          以下是同事对您的互评记录，为保护隐私，评价人姓名已脱敏处理，分数不显示。
-        </div>
-        {history.length > 0 ? (
-          <Table
-            dataSource={history}
-            columns={columns}
-            rowKey={(record) => `${record.periodName}-${record.createTime}`}
-            pagination={{ pageSize: 10 }}
-          />
-        ) : (
-          <Empty description="暂无评价记录" />
-        )}
+        <Table dataSource={history} columns={columns} rowKey="recordId" pagination={{ pageSize: 10 }} />
       </Spin>
     </Card>
   );

@@ -1,22 +1,24 @@
-import request from '@/utils/request';
-import { EvalHistory, EvalRecord, RankInfo } from '@/types';
+﻿import request from '@/utils/request';
+import { EvalHistory, RankInfo, ScoreDetailItem } from '@/types';
 
-// 员工查看互评历史
 export function getMyHistory(periodId?: number): Promise<EvalHistory[]> {
-  return request.get('/query/my-history', { params: { periodId } });
+  return request.get('/query/my-history').then((list: EvalHistory[]) =>
+    periodId ? list.filter((item) => item.periodId === periodId) : list
+  );
 }
 
-// 领导查看评分详情
-export function getScoreDetail(userId: number, periodId: number): Promise<EvalRecord> {
-  return request.get(`/query/score-detail/${userId}`, { params: { periodId } });
+export function getHistoryByUser(userId: number): Promise<EvalHistory[]> {
+  return request.get(`/query/history/${userId}`);
 }
 
-// 领导查看部门排名
+export function getScoreDetails(periodId: number, targetId: number): Promise<ScoreDetailItem[]> {
+  return request.get('/query/details', { params: { periodId, targetId } });
+}
+
 export function getDeptRank(periodId: number, deptId?: number): Promise<RankInfo[]> {
-  return request.get('/query/dept-rank', { params: { periodId, deptId } });
+  return request.get('/query/ranking', { params: { periodId, deptId } });
 }
 
-// 获取统计数据
 export function getStatistics(periodId: number): Promise<{
   totalEmployees: number;
   scoredCount: number;

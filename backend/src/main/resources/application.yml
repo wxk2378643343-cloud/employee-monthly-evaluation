@@ -1,4 +1,4 @@
-server:
+﻿server:
   port: 8080
 
 spring:
@@ -22,8 +22,8 @@ mybatis-plus:
       logic-not-delete-value: 0
 
 jwt:
-  secret: ZXZhbC1zeXN0ZW0tc2VjcmV0LWtleS1mb3Itand0LXRva2VuLWdlbmVyYXRpb24tMjAyNA==
-  expiration: 86400000
+  secret: ${JWT_SECRET:ZXZhbC1zeXN0ZW0tc2VjcmV0LWtleS1mb3Itand0LXRva2VuLWdlbmVyYXRpb24tMjAyNA==}
+  expiration: ${JWT_EXPIRATION:86400000}
 
 logging:
   level:

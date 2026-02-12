@@ -8,23 +8,52 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reminds")
-@PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 public class RemindController {
 
     private final RemindService remindService;
 
     @PostMapping("/send/{periodId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<Void> sendRemind(@PathVariable Long periodId) {
         remindService.remindUnscored(periodId);
         return Result.success();
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public Result<List<RemindRecord>> listByPeriod(@RequestParam Long periodId) {
         return Result.success(remindService.listByPeriod(periodId));
+    }
+
+    @GetMapping("/mine")
+    public Result<List<Map<String, Object>>> listMine(@RequestParam(required = false) Long periodId) {
+        return Result.success(remindService.listCurrentUser(periodId));
+    }
+
+    @GetMapping("/unread")
+    public Result<List<Map<String, Object>>> listUnread() {
+        return Result.success(remindService.listCurrentUserUnread());
+    }
+
+    @GetMapping("/unread-count")
+    public Result<Long> unreadCount() {
+        return Result.success(remindService.unreadCountForCurrentUser());
+    }
+
+    @PostMapping("/{id}/read")
+    public Result<Void> markRead(@PathVariable Long id) {
+        remindService.markReadForCurrentUser(id);
+        return Result.success();
+    }
+
+    @PostMapping("/read-all")
+    public Result<Void> markAllRead() {
+        remindService.markAllReadForCurrentUser();
+        return Result.success();
     }
 }

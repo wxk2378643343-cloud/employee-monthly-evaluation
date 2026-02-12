@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Card, Table, Select, Button, Tag, Space, Spin, Modal, message } from 'antd';
 import { EditOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import * as scoreApi from '@/api/score';
 import * as adminApi from '@/api/admin';
 import ScoreForm from './ScoreForm';
-import type { EvalPeriod, PendingUser, ScoreSubmit } from '@/types';
+import { EvalPeriod, PendingUser, ScoreSubmit, EvalTypeLabel } from '@/types';
 
 const PendingList: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -19,22 +19,14 @@ const PendingList: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (currentPeriodId) {
-      loadPendingList();
-    }
+    if (currentPeriodId) loadPendingList();
   }, [currentPeriodId]);
 
   const loadPeriods = async () => {
-    try {
-      const data = await adminApi.getPeriodList();
-      setPeriods(data);
-      const activePeriod = data.find((p) => p.status === 1) || data[0];
-      if (activePeriod) {
-        setCurrentPeriodId(activePeriod.id);
-      }
-    } catch {
-      // 忽略
-    }
+    const data = await adminApi.getPeriodList();
+    setPeriods(data);
+    const active = data.find((p) => p.status === 1) || data[0];
+    if (active) setCurrentPeriodId(active.id);
   };
 
   const loadPendingList = async () => {
@@ -43,58 +35,37 @@ const PendingList: React.FC = () => {
     try {
       const data = await scoreApi.getPendingList(currentPeriodId);
       setPendingList(data);
-    } catch {
-      // 忽略
     } finally {
       setLoading(false);
     }
   };
 
-  const handleScore = (record: PendingUser) => {
-    setCurrentTarget(record);
-    setModalVisible(true);
-  };
-
   const handleSubmit = async (data: ScoreSubmit) => {
-    try {
-      await scoreApi.submitScore(data);
-      message.success('评分提交成功');
-      setModalVisible(false);
-      loadPendingList();
-    } catch {
-      // 忽略
-    }
+    await scoreApi.submitScore(data);
+    message.success('提交成功');
+    setModalVisible(false);
+    loadPendingList();
   };
 
   const columns = [
-    { title: '姓名', dataIndex: 'realName', key: 'realName' },
+    { title: '被评价人', dataIndex: 'targetName', key: 'targetName' },
     { title: '部门', dataIndex: 'deptName', key: 'deptName' },
     { title: '小组', dataIndex: 'groupName', key: 'groupName' },
     {
       title: '评价类型',
       dataIndex: 'evalType',
       key: 'evalType',
-      render: (type: string) => {
-        const colorMap: Record<string, string> = {
-          互评: 'blue',
-          小组长: 'cyan',
-          分管领导: 'purple',
-          单位领导: 'red',
-        };
-        return <Tag color={colorMap[type] || 'default'}>{type}</Tag>;
-      },
+      render: (type: keyof typeof EvalTypeLabel) => EvalTypeLabel[type] || type,
     },
     {
       title: '状态',
-      dataIndex: 'scored',
-      key: 'scored',
-      render: (scored: boolean) =>
-        scored ? (
-          <Tag icon={<CheckCircleOutlined />} color="success">
-            已评价
-          </Tag>
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: number) =>
+        status === 1 ? (
+          <Tag icon={<CheckCircleOutlined />} color="success">已评分</Tag>
         ) : (
-          <Tag color="warning">待评价</Tag>
+          <Tag color="warning">待评分</Tag>
         ),
     },
     {
@@ -104,65 +75,47 @@ const PendingList: React.FC = () => {
         <Button
           type="link"
           icon={<EditOutlined />}
-          onClick={() => handleScore(record)}
-          disabled={record.scored}
+          onClick={() => {
+            setCurrentTarget(record);
+            setModalVisible(true);
+          }}
+          disabled={record.status === 1}
         >
-          {record.scored ? '已评价' : '去评价'}
+          {record.status === 1 ? '已完成' : '去评分'}
         </Button>
       ),
     },
   ];
 
-  const scoredCount = pendingList.filter((p) => p.scored).length;
-  const totalCount = pendingList.length;
+  const scoredCount = pendingList.filter((p) => p.status === 1).length;
 
   return (
     <Card
-      title="待评价列表"
+      title="待评分列表"
       extra={
         <Space>
-          <span>
-            进度：{scoredCount}/{totalCount}
-          </span>
-          <Select
-            value={currentPeriodId}
-            onChange={setCurrentPeriodId}
-            style={{ width: 200 }}
-            placeholder="请选择评价周期"
-          >
+          <span>{scoredCount}/{pendingList.length}</span>
+          <Select value={currentPeriodId} onChange={setCurrentPeriodId} style={{ width: 220 }}>
             {periods.map((p) => (
-              <Select.Option key={p.id} value={p.id}>
-                {p.periodName}
-              </Select.Option>
+              <Select.Option key={p.id} value={p.id}>{p.periodName}</Select.Option>
             ))}
           </Select>
         </Space>
       }
     >
       <Spin spinning={loading}>
-        <Table
-          dataSource={pendingList}
-          columns={columns}
-          rowKey="userId"
-          pagination={{ pageSize: 10 }}
-        />
+        <Table dataSource={pendingList} columns={columns} rowKey="assignId" pagination={{ pageSize: 10 }} />
       </Spin>
 
-      <Modal
-        title="提交评价"
-        open={modalVisible}
-        onCancel={() => setModalVisible(false)}
-        footer={null}
-        width={600}
-        destroyOnClose
-      >
+      <Modal title="提交评分" open={modalVisible} onCancel={() => setModalVisible(false)} footer={null} destroyOnClose>
         {currentTarget && currentPeriodId && (
           <ScoreForm
             targetUser={{
-              id: currentTarget.userId,
-              realName: currentTarget.realName,
+              id: currentTarget.targetId,
+              targetName: currentTarget.targetName,
               deptName: currentTarget.deptName,
               groupName: currentTarget.groupName,
+              evalType: currentTarget.evalType,
             }}
             periodId={currentPeriodId}
             onSubmit={handleSubmit}

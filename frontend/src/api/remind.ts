@@ -1,30 +1,29 @@
-import request from '@/utils/request';
+﻿import request from '@/utils/request';
 import { Remind } from '@/types';
 
-// 获取未读提醒列表
 export function getUnreadReminds(): Promise<Remind[]> {
-  return request.get('/remind/unread');
+  return request.get('/reminds/unread');
 }
 
-// 获取未读数量
 export function getUnreadCount(): Promise<number> {
-  return request.get('/remind/unread-count');
+  return request.get('/reminds/unread-count');
 }
 
-// 标记已读
 export function markRead(id: number): Promise<void> {
-  return request.post(`/remind/read/${id}`);
+  return request.post(`/reminds/${id}/read`);
 }
 
-// 全部标记已读
 export function markAllRead(): Promise<void> {
-  return request.post('/remind/read-all');
+  return request.post('/reminds/read-all');
 }
 
-// 获取全部提醒（分页）
-export function getRemindList(params: { pageNum: number; pageSize: number }): Promise<{
+export function getRemindList(params: { pageNum: number; pageSize: number; periodId?: number }): Promise<{
   total: number;
   list: Remind[];
 }> {
-  return request.get('/remind/list', { params });
+  return request.get('/reminds/mine', { params: { periodId: params.periodId } }).then((list: Remind[]) => {
+    const start = (params.pageNum - 1) * params.pageSize;
+    const paged = list.slice(start, start + params.pageSize);
+    return { total: list.length, list: paged };
+  });
 }

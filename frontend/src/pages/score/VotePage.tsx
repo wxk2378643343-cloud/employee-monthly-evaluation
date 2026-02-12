@@ -1,183 +1,127 @@
-import React, { useEffect, useState } from 'react';
-import { Card, Table, Select, Button, Tag, Space, Spin, Modal, Form, Radio, Input, message } from 'antd';
-import { CheckCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+﻿import React, { useEffect, useMemo, useState } from 'react';
+import { Card, Table, Select, Button, Tag, Space, Spin, Modal, Form, Radio, message } from 'antd';
 import * as scoreApi from '@/api/score';
 import * as adminApi from '@/api/admin';
-import type { EvalPeriod, VoteCandidate } from '@/types';
+import { EvalPeriod, VoteCandidate, VoteRecord } from '@/types';
 
 const VotePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [periods, setPeriods] = useState<EvalPeriod[]>([]);
   const [currentPeriodId, setCurrentPeriodId] = useState<number>();
   const [candidates, setCandidates] = useState<VoteCandidate[]>([]);
+  const [votes, setVotes] = useState<VoteRecord[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [currentCandidate, setCurrentCandidate] = useState<VoteCandidate | null>(null);
   const [form] = Form.useForm();
 
   useEffect(() => {
-    loadPeriods();
+    (async () => {
+      const data = await adminApi.getPeriodList();
+      setPeriods(data);
+      const active = data.find((p) => p.status === 1) || data[0];
+      if (active) setCurrentPeriodId(active.id);
+    })();
   }, []);
 
   useEffect(() => {
-    if (currentPeriodId) {
-      loadCandidates();
-    }
+    if (!currentPeriodId) return;
+    (async () => {
+      setLoading(true);
+      try {
+        const [rankData, myVotes] = await Promise.all([
+          scoreApi.getVoteCandidates(currentPeriodId),
+          scoreApi.getMyVotes(currentPeriodId),
+        ]);
+        setCandidates(rankData);
+        setVotes(myVotes);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [currentPeriodId]);
 
-  const loadPeriods = async () => {
-    try {
-      const data = await adminApi.getPeriodList();
-      setPeriods(data);
-      // 默认选择第二轮进行中的周期
-      const activePeriod = data.find((p) => p.status === 2) || data[0];
-      if (activePeriod) {
-        setCurrentPeriodId(activePeriod.id);
-      }
-    } catch {
-      // 忽略
-    }
-  };
-
-  const loadCandidates = async () => {
-    if (!currentPeriodId) return;
-    setLoading(true);
-    try {
-      const data = await scoreApi.getVoteCandidates(currentPeriodId);
-      setCandidates(data);
-    } catch {
-      // 忽略
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVote = (record: VoteCandidate) => {
-    setCurrentCandidate(record);
-    form.resetFields();
-    setModalVisible(true);
-  };
-
-  const handleSubmit = async () => {
-    if (!currentPeriodId || !currentCandidate) return;
-    try {
-      const values = await form.validateFields();
-      await scoreApi.submitVote({
-        periodId: currentPeriodId,
-        targetUserId: currentCandidate.userId,
-        voteResult: values.voteResult,
-        voteReason: values.voteReason,
-      });
-      message.success('投票成功');
-      setModalVisible(false);
-      loadCandidates();
-    } catch {
-      // 忽略
-    }
-  };
+  const merged = useMemo(() => {
+    const voteMap = new Map<number, VoteRecord>();
+    votes.forEach((v) => voteMap.set(v.candidateId, v));
+    return candidates.map((c) => {
+      const v = voteMap.get(c.targetId);
+      return { ...c, voted: !!v, voteType: v?.voteType };
+    });
+  }, [candidates, votes]);
 
   const columns = [
-    {
-      title: '排名',
-      dataIndex: 'deptRank',
-      key: 'deptRank',
-      render: (rank: number) => <Tag color="orange">第{rank}名</Tag>,
-    },
-    { title: '姓名', dataIndex: 'userName', key: 'userName' },
+    { title: '排名', dataIndex: 'deptRank', key: 'deptRank' },
+    { title: '姓名', dataIndex: 'targetName', key: 'targetName' },
     { title: '小组', dataIndex: 'groupName', key: 'groupName' },
     {
-      title: '综合得分',
-      dataIndex: 'totalScore',
-      key: 'totalScore',
-      render: (score: number) => score?.toFixed(2),
+      title: '综合分',
+      dataIndex: 'weightedScore',
+      key: 'weightedScore',
+      render: (score: number) => score?.toFixed?.(2) ?? '-',
     },
     {
       title: '投票状态',
-      dataIndex: 'voted',
       key: 'voted',
-      render: (voted: boolean, record: VoteCandidate) => {
-        if (!voted) return <Tag>待投票</Tag>;
-        return record.voteResult === 1 ? (
-          <Tag icon={<ExclamationCircleOutlined />} color="error">
-            同意预警
-          </Tag>
-        ) : (
-          <Tag icon={<CheckCircleOutlined />} color="success">
-            不同意
-          </Tag>
-        );
-      },
+      render: (_: unknown, record: VoteCandidate) =>
+        record.voted ? <Tag color="success">已投票 ({record.voteType})</Tag> : <Tag>未投票</Tag>,
     },
     {
       title: '操作',
       key: 'action',
       render: (_: unknown, record: VoteCandidate) => (
-        <Button type="link" onClick={() => handleVote(record)} disabled={record.voted}>
+        <Button
+          type="link"
+          disabled={record.voted}
+          onClick={() => {
+            setCurrentCandidate(record);
+            form.resetFields();
+            setModalVisible(true);
+          }}
+        >
           {record.voted ? '已投票' : '投票'}
         </Button>
       ),
     },
   ];
 
+  const handleSubmit = async () => {
+    if (!currentPeriodId || !currentCandidate) return;
+    const values = await form.validateFields();
+    await scoreApi.submitVote({
+      periodId: currentPeriodId,
+      targetId: currentCandidate.targetId,
+      voteType: values.voteType,
+    });
+    message.success('投票成功');
+    setModalVisible(false);
+    const myVotes = await scoreApi.getMyVotes(currentPeriodId);
+    setVotes(myVotes);
+  };
+
   return (
     <Card
-      title="投票表决"
+      title="投票"
       extra={
         <Space>
-          <span style={{ color: '#666' }}>对后3%人员进行投票表决，同意率超过50%将被预警</span>
-          <Select
-            value={currentPeriodId}
-            onChange={setCurrentPeriodId}
-            style={{ width: 200 }}
-            placeholder="请选择评价周期"
-          >
+          <Select value={currentPeriodId} onChange={setCurrentPeriodId} style={{ width: 220 }}>
             {periods.map((p) => (
-              <Select.Option key={p.id} value={p.id}>
-                {p.periodName}
-              </Select.Option>
+              <Select.Option key={p.id} value={p.id}>{p.periodName}</Select.Option>
             ))}
           </Select>
         </Space>
       }
     >
       <Spin spinning={loading}>
-        <Table
-          dataSource={candidates}
-          columns={columns}
-          rowKey="userId"
-          pagination={{ pageSize: 10 }}
-        />
+        <Table dataSource={merged} columns={columns} rowKey="targetId" pagination={{ pageSize: 10 }} />
       </Spin>
 
-      <Modal
-        title="投票表决"
-        open={modalVisible}
-        onOk={handleSubmit}
-        onCancel={() => setModalVisible(false)}
-      >
-        <div style={{ marginBottom: 16 }}>
-          <p>
-            被投票人：<strong>{currentCandidate?.userName}</strong>
-          </p>
-          <p>
-            综合得分：<strong>{currentCandidate?.totalScore?.toFixed(2)}</strong>
-          </p>
-          <p>
-            部门排名：<strong>第{currentCandidate?.deptRank}名</strong>
-          </p>
-        </div>
+      <Modal title="投票" open={modalVisible} onOk={handleSubmit} onCancel={() => setModalVisible(false)}>
         <Form form={form} layout="vertical">
-          <Form.Item
-            name="voteResult"
-            label="投票选择"
-            rules={[{ required: true, message: '请选择投票结果' }]}
-          >
+          <Form.Item name="voteType" label="投票结果" rules={[{ required: true, message: '请选择' }]}>
             <Radio.Group>
-              <Radio value={1}>同意预警</Radio>
-              <Radio value={0}>不同意</Radio>
+              <Radio value="EXCELLENT">优秀</Radio>
+              <Radio value="POOR">较差</Radio>
             </Radio.Group>
-          </Form.Item>
-          <Form.Item name="voteReason" label="投票理由（选填）">
-            <Input.TextArea rows={3} placeholder="请输入投票理由" maxLength={500} />
           </Form.Item>
         </Form>
       </Modal>

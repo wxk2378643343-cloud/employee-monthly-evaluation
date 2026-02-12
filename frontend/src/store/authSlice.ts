@@ -1,5 +1,5 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { User } from '@/types';
+﻿import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import type { User } from '@/types';
 import * as authApi from '@/api/auth';
 import { setToken, removeToken, getToken } from '@/utils/auth';
 
@@ -15,26 +15,23 @@ const initialState: AuthState = {
   loading: false,
 };
 
-// 登录
-export const login = createAsyncThunk(
-  'auth/login',
-  async (params: authApi.LoginParams) => {
-    const result = await authApi.login(params);
-    setToken(result.token);
-    return result;
-  }
-);
+export const login = createAsyncThunk('auth/login', async (params: authApi.LoginParams) => {
+  const result: any = await authApi.login(params);
+  setToken(result.token);
+  const user: User = {
+    id: result.userId,
+    username: result.username,
+    realName: result.realName,
+    role: result.role,
+  } as User;
+  return { token: result.token, user };
+});
 
-// 获取用户信息
-export const fetchUserInfo = createAsyncThunk(
-  'auth/fetchUserInfo',
-  async () => {
-    const user = await authApi.getUserInfo();
-    return user;
-  }
-);
+export const fetchUserInfo = createAsyncThunk('auth/fetchUserInfo', async () => {
+  const user = await authApi.getUserInfo();
+  return user;
+});
 
-// 退出登录
 export const logout = createAsyncThunk('auth/logout', async () => {
   await authApi.logout();
   removeToken();
@@ -65,9 +62,17 @@ const authSlice = createSlice({
       })
       .addCase(login.rejected, (state) => {
         state.loading = false;
+        state.user = null;
+        state.token = null;
+        removeToken();
       })
       .addCase(fetchUserInfo.fulfilled, (state, action) => {
         state.user = action.payload;
+      })
+      .addCase(fetchUserInfo.rejected, (state) => {
+        state.user = null;
+        state.token = null;
+        removeToken();
       })
       .addCase(logout.fulfilled, (state) => {
         state.user = null;

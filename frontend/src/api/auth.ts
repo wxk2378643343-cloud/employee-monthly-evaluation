@@ -1,5 +1,4 @@
-import request from '@/utils/request';
-import { User } from '@/types';
+﻿import request from '@/utils/request';
 
 export interface LoginParams {
   username: string;
@@ -8,20 +7,20 @@ export interface LoginParams {
 
 export interface LoginResult {
   token: string;
-  user: User;
+  userId: number;
+  username: string;
+  realName: string;
+  role: string;
 }
 
-// 用户登录
 export function login(data: LoginParams): Promise<LoginResult> {
   return request.post('/auth/login', data);
 }
 
-// 退出登录
 export function logout(): Promise<void> {
   return request.post('/auth/logout');
 }
 
-// 获取当前用户信息
-export function getUserInfo(): Promise<User> {
+export function getUserInfo(): Promise<any> {
   return request.get('/auth/info');
 }

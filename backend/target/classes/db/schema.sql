@@ -15,10 +15,10 @@ CREATE TABLE IF NOT EXISTS sys_department (
     deleted     TINYINT DEFAULT 0 COMMENT '逻辑删除 0-未删除 1-已删除'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='部门表';
 
--- 2. 小组表
+-- 2. 网格表
 CREATE TABLE IF NOT EXISTS sys_group (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '小组ID',
-    group_name  VARCHAR(100) NOT NULL COMMENT '小组名称',
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '网格ID',
+    group_name  VARCHAR(100) NOT NULL COMMENT '网格名称',
     dept_id     BIGINT NOT NULL COMMENT '所属部门ID',
     sort_order  INT DEFAULT 0 COMMENT '排序',
     status      TINYINT DEFAULT 1 COMMENT '状态 1-正常 0-停用',
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS sys_group (
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     deleted     TINYINT DEFAULT 0 COMMENT '逻辑删除 0-未删除 1-已删除',
     INDEX idx_dept_id (dept_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='小组表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='网格表';
 
 -- 3. 用户表
 CREATE TABLE IF NOT EXISTS sys_user (
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
     password      VARCHAR(255) NOT NULL COMMENT '密码',
     real_name     VARCHAR(50) NOT NULL COMMENT '真实姓名',
     dept_id       BIGINT COMMENT '部门ID',
-    group_id      BIGINT COMMENT '小组ID',
+    group_id      BIGINT COMMENT '网格ID',
     role          VARCHAR(20) NOT NULL DEFAULT 'EMPLOYEE' COMMENT '角色: ADMIN/DEPT_LEADER/GROUP_LEADER/EMPLOYEE',
     phone         VARCHAR(20) COMMENT '手机号',
     dingtalk_id   VARCHAR(100) COMMENT '钉钉用户ID',
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS eval_record (
     target_id           BIGINT NOT NULL COMMENT '被评价人ID',
     self_score          DECIMAL(6,2) COMMENT '自评得分',
     peer_score          DECIMAL(6,2) COMMENT '互评得分（均值）',
-    group_leader_score  DECIMAL(6,2) COMMENT '小组长评分（均值）',
+    group_leader_score  DECIMAL(6,2) COMMENT '网格长评分（均值）',
     dept_leader_score   DECIMAL(6,2) COMMENT '分管领导评分（均值）',
     admin_score         DECIMAL(6,2) COMMENT '管理员评分',
     weighted_score      DECIMAL(6,2) COMMENT '加权综合得分',
@@ -152,5 +152,5 @@ CREATE TABLE IF NOT EXISTS remind_record (
 
 -- 初始化管理员账号（密码: admin123，BCrypt加密）
 INSERT INTO sys_user (username, password, real_name, role, status)
-VALUES ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', 'System Admin', 'ADMIN', 1)
-ON DUPLICATE KEY UPDATE username = username;
+VALUES ('admin', '$2a$10$n6iGSjgj87ygQPMhe7zgXe53mgCMmbxiWbPpfatH5n/xjS2MOchGy', 'System Admin', 'ADMIN', 1)
+ON DUPLICATE KEY UPDATE password = '$2a$10$n6iGSjgj87ygQPMhe7zgXe53mgCMmbxiWbPpfatH5n/xjS2MOchGy';

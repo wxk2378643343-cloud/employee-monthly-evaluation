@@ -1,22 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import {
-  Card,
-  Table,
-  Button,
-  Space,
-  Modal,
-  Form,
-  Input,
-  DatePicker,
-  Select,
-  message,
-  Tag,
-} from 'antd';
+﻿import React, { useEffect, useState } from 'react';
+import { Card, Table, Button, Space, Modal, Form, Input, DatePicker, Select, message, Tag } from 'antd';
 import { PlusOutlined, EditOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import * as adminApi from '@/api/admin';
-import type { EvalPeriod } from '@/types';
-import { PeriodStatus, PeriodStatusLabel } from '@/types';
+import { EvalPeriod, PeriodStatus, PeriodStatusLabel } from '@/types';
 
 const PeriodManage: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -25,33 +12,29 @@ const PeriodManage: React.FC = () => {
   const [currentPeriod, setCurrentPeriod] = useState<EvalPeriod | null>(null);
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   const loadData = async () => {
     setLoading(true);
     try {
-      const data = await adminApi.getPeriodList();
-      setPeriods(data);
-    } catch {
-      // 忽略
+      setPeriods(await adminApi.getPeriodList());
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadData();
+  }, []);
+
   const handleAdd = () => {
     setCurrentPeriod(null);
     form.resetFields();
-    // 默认设置为下个月
-    const nextMonth = dayjs().add(1, 'month');
+    const next = dayjs().add(1, 'month');
     form.setFieldsValue({
-      year: nextMonth.year(),
-      month: nextMonth.month() + 1,
-      periodName: `${nextMonth.year()}年${nextMonth.month() + 1}月`,
-      startDate: nextMonth.startOf('month'),
-      endDate: nextMonth.endOf('month'),
+      year: next.year(),
+      month: next.month() + 1,
+      periodName: `${next.year()}-${next.month() + 1}`,
+      startTime: next.startOf('month'),
+      endTime: next.endOf('month'),
       status: PeriodStatus.NOT_STARTED,
     });
     setModalVisible(true);
@@ -61,180 +44,91 @@ const PeriodManage: React.FC = () => {
     setCurrentPeriod(record);
     form.setFieldsValue({
       ...record,
-      startDate: dayjs(record.startDate),
-      endDate: dayjs(record.endDate),
+      startTime: record.startTime ? dayjs(record.startTime) : undefined,
+      endTime: record.endTime ? dayjs(record.endTime) : undefined,
     });
     setModalVisible(true);
   };
 
   const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-      const data = {
-        ...values,
-        startDate: values.startDate.format('YYYY-MM-DD'),
-        endDate: values.endDate.format('YYYY-MM-DD'),
-        id: currentPeriod?.id,
-      };
-      await adminApi.savePeriod(data);
-      message.success(currentPeriod ? '编辑成功' : '新增成功');
-      setModalVisible(false);
-      loadData();
-    } catch {
-      // 忽略
-    }
+    const values = await form.validateFields();
+    await adminApi.savePeriod({
+      ...values,
+      id: currentPeriod?.id,
+      startTime: values.startTime?.format('YYYY-MM-DD HH:mm:ss'),
+      endTime: values.endTime?.format('YYYY-MM-DD HH:mm:ss'),
+    });
+    message.success('保存成功');
+    setModalVisible(false);
+    loadData();
   };
 
-  const handleStatusChange = async (id: number, status: number) => {
-    try {
-      await adminApi.updatePeriodStatus(id, status);
-      message.success('状态更新成功');
-      loadData();
-    } catch {
-      // 忽略
-    }
+  const handleStart = async (id: number) => {
+    await adminApi.updatePeriodStatus(id, PeriodStatus.IN_PROGRESS);
+    message.success('已开始');
+    loadData();
   };
 
-  const getStatusColor = (status: PeriodStatus) => {
-    const colorMap: Record<PeriodStatus, string> = {
-      [PeriodStatus.NOT_STARTED]: 'default',
-      [PeriodStatus.ROUND_ONE]: 'processing',
-      [PeriodStatus.ROUND_TWO]: 'warning',
-      [PeriodStatus.ENDED]: 'success',
-    };
-    return colorMap[status];
+  const handleEnd = async (id: number) => {
+    await adminApi.updatePeriodStatus(id, PeriodStatus.ENDED);
+    message.success('已结束');
+    loadData();
   };
 
-  const columns = [
-    { title: '周期名称', dataIndex: 'periodName', key: 'periodName' },
-    { title: '年份', dataIndex: 'year', key: 'year', width: 80 },
-    { title: '月份', dataIndex: 'month', key: 'month', width: 80 },
-    { title: '开始日期', dataIndex: 'startDate', key: 'startDate' },
-    { title: '结束日期', dataIndex: 'endDate', key: 'endDate' },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: PeriodStatus) => (
-        <Tag color={getStatusColor(status)}>{PeriodStatusLabel[status]}</Tag>
-      ),
-    },
-    {
-      title: '操作',
-      key: 'action',
-      render: (_: unknown, record: EvalPeriod) => (
-        <Space>
-          <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-            编辑
-          </Button>
-          {record.status === PeriodStatus.NOT_STARTED && (
-            <Button
-              type="link"
-              onClick={() => handleStatusChange(record.id, PeriodStatus.ROUND_ONE)}
-            >
-              开始第一轮
-            </Button>
-          )}
-          {record.status === PeriodStatus.ROUND_ONE && (
-            <Button
-              type="link"
-              onClick={() => handleStatusChange(record.id, PeriodStatus.ROUND_TWO)}
-            >
-              进入第二轮
-            </Button>
-          )}
-          {record.status === PeriodStatus.ROUND_TWO && (
-            <Button
-              type="link"
-              onClick={() => handleStatusChange(record.id, PeriodStatus.ENDED)}
-            >
-              结束
-            </Button>
-          )}
-        </Space>
-      ),
-    },
-  ];
+  const statusColor: Record<number, string> = {
+    [PeriodStatus.NOT_STARTED]: 'default',
+    [PeriodStatus.IN_PROGRESS]: 'processing',
+    [PeriodStatus.ENDED]: 'success',
+  };
 
   return (
-    <Card
-      title="评价周期管理"
-      extra={
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-          新增周期
-        </Button>
-      }
-    >
+    <Card title="评价周期管理" extra={<Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>新增周期</Button>}>
       <Table
         loading={loading}
         dataSource={periods}
-        columns={columns}
         rowKey="id"
-        pagination={{ pageSize: 10 }}
+        columns={[
+          { title: '名称', dataIndex: 'periodName', key: 'periodName' },
+          { title: '年份', dataIndex: 'year', key: 'year' },
+          { title: '月份', dataIndex: 'month', key: 'month' },
+          { title: '开始时间', dataIndex: 'startTime', key: 'startTime' },
+          { title: '结束时间', dataIndex: 'endTime', key: 'endTime' },
+          {
+            title: '状态',
+            dataIndex: 'status',
+            key: 'status',
+            render: (s: PeriodStatus) => <Tag color={statusColor[s]}>{PeriodStatusLabel[s]}</Tag>,
+          },
+          {
+            title: '操作',
+            key: 'action',
+            render: (_: unknown, r: EvalPeriod) => (
+              <Space>
+                <Button type="link" icon={<EditOutlined />} onClick={() => handleEdit(r)}>编辑</Button>
+                {r.status === PeriodStatus.NOT_STARTED && <Button type="link" onClick={() => handleStart(r.id)}>开始</Button>}
+                {r.status === PeriodStatus.IN_PROGRESS && <Button type="link" onClick={() => handleEnd(r.id)}>结束</Button>}
+              </Space>
+            ),
+          },
+        ]}
       />
 
-      <Modal
-        title={currentPeriod ? '编辑周期' : '新增周期'}
-        open={modalVisible}
-        onOk={handleSubmit}
-        onCancel={() => setModalVisible(false)}
-      >
+      <Modal title={currentPeriod ? '编辑周期' : '新增周期'} open={modalVisible} onOk={handleSubmit} onCancel={() => setModalVisible(false)}>
         <Form form={form} layout="vertical">
-          <Form.Item
-            name="periodName"
-            label="周期名称"
-            rules={[{ required: true, message: '请输入周期名称' }]}
-          >
-            <Input placeholder="如：2024年1月" />
-          </Form.Item>
+          <Form.Item name="periodName" label="周期名称" rules={[{ required: true, message: '请输入名称' }]}><Input /></Form.Item>
           <Space>
-            <Form.Item
-              name="year"
-              label="年份"
-              rules={[{ required: true, message: '请输入年份' }]}
-            >
-              <Input type="number" style={{ width: 120 }} />
-            </Form.Item>
-            <Form.Item
-              name="month"
-              label="月份"
-              rules={[{ required: true, message: '请输入月份' }]}
-            >
-              <Input type="number" min={1} max={12} style={{ width: 120 }} />
-            </Form.Item>
+            <Form.Item name="year" label="年份" rules={[{ required: true, message: '请输入年份' }]}><Input type="number" style={{ width: 120 }} /></Form.Item>
+            <Form.Item name="month" label="月份" rules={[{ required: true, message: '请输入月份' }]}><Input type="number" min={1} max={12} style={{ width: 120 }} /></Form.Item>
           </Space>
           <Space>
-            <Form.Item
-              name="startDate"
-              label="开始日期"
-              rules={[{ required: true, message: '请选择开始日期' }]}
-            >
-              <DatePicker />
-            </Form.Item>
-            <Form.Item
-              name="endDate"
-              label="结束日期"
-              rules={[{ required: true, message: '请选择结束日期' }]}
-            >
-              <DatePicker />
-            </Form.Item>
+            <Form.Item name="startTime" label="开始时间"><DatePicker showTime /></Form.Item>
+            <Form.Item name="endTime" label="结束时间"><DatePicker showTime /></Form.Item>
           </Space>
-          <Form.Item name="status" label="状态">
-            <Select>
-              <Select.Option value={PeriodStatus.NOT_STARTED}>
-                {PeriodStatusLabel[PeriodStatus.NOT_STARTED]}
-              </Select.Option>
-              <Select.Option value={PeriodStatus.ROUND_ONE}>
-                {PeriodStatusLabel[PeriodStatus.ROUND_ONE]}
-              </Select.Option>
-              <Select.Option value={PeriodStatus.ROUND_TWO}>
-                {PeriodStatusLabel[PeriodStatus.ROUND_TWO]}
-              </Select.Option>
-              <Select.Option value={PeriodStatus.ENDED}>
-                {PeriodStatusLabel[PeriodStatus.ENDED]}
-              </Select.Option>
-            </Select>
-          </Form.Item>
+          <Form.Item name="status" label="状态"><Select>
+            <Select.Option value={PeriodStatus.NOT_STARTED}>{PeriodStatusLabel[PeriodStatus.NOT_STARTED]}</Select.Option>
+            <Select.Option value={PeriodStatus.IN_PROGRESS}>{PeriodStatusLabel[PeriodStatus.IN_PROGRESS]}</Select.Option>
+            <Select.Option value={PeriodStatus.ENDED}>{PeriodStatusLabel[PeriodStatus.ENDED]}</Select.Option>
+          </Select></Form.Item>
         </Form>
       </Modal>
     </Card>

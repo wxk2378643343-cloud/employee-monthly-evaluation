@@ -1,0 +1,15 @@
+﻿# IDE
+.idea/
+
+# Backend
+backend/target/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.idea/
+frontend/nul
+
+# OS
+.DS_Store
+Thumbs.db
