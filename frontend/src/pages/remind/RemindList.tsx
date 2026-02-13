@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Card, List, Tag, Avatar, Button, Empty, Spin, Pagination, Space } from 'antd';
+import { Card, List, Tag, Avatar, Button, Empty, Spin, Pagination, Space, Grid } from 'antd';
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
 import { useAppDispatch } from '@/store';
 import { markAllRead, fetchUnreadCount } from '@/store/remindSlice';
@@ -7,6 +7,8 @@ import * as remindApi from '@/api/remind';
 import { Remind } from '@/types';
 
 const RemindList: React.FC = () => {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(false);
   const [reminds, setReminds] = useState<Remind[]>([]);
@@ -44,26 +46,46 @@ const RemindList: React.FC = () => {
         {reminds.length > 0 ? (
           <>
             <List
-              itemLayout="horizontal"
+              itemLayout={isMobile ? 'vertical' : 'horizontal'}
+              className={isMobile ? 'remind-list-mobile' : ''}
               dataSource={reminds}
               renderItem={(item) => (
                 <List.Item
+                  className={`${isMobile ? 'remind-list-mobile-item ' : ''}${!item.isRead ? 'remind-item--unread' : ''}`}
                   actions={
                     !item.isRead
-                      ? [<Button key="read" type="link" icon={<CheckOutlined />} onClick={() => handleMarkRead(item.id)}>标记已读</Button>]
+                      ? [<Button key="read" type="link" size={isMobile ? 'small' : 'middle'} icon={<CheckOutlined />} onClick={() => handleMarkRead(item.id)}>标记已读</Button>]
                       : []
                   }
                 >
                   <List.Item.Meta
                     avatar={<Avatar icon={<BellOutlined />} />}
-                    title={<Space><Tag>{item.remindType}</Tag>{!item.isRead && <Tag color="green">未读</Tag>}</Space>}
-                    description={<div><div>{item.remindContent}</div><div>{item.createTime}</div></div>}
+                    title={
+                      <Space size={8}>
+                        {!item.isRead && <span className="remind-unread-dot" />}
+                        <Tag>{item.remindType}</Tag>
+                        {!item.isRead && <Tag color="green">未读</Tag>}
+                      </Space>
+                    }
+                    description={
+                      <div>
+                        <div className={!item.isRead ? 'remind-content remind-content--unread' : 'remind-content'}>{item.remindContent}</div>
+                        <div>{item.createTime}</div>
+                      </div>
+                    }
                   />
                 </List.Item>
               )}
             />
-            <div style={{ textAlign: 'right', marginTop: 16 }}>
-              <Pagination current={pageNum} total={total} pageSize={pageSize} onChange={setPageNum} />
+            <div style={{ textAlign: isMobile ? 'center' : 'right', marginTop: 16 }}>
+              <Pagination
+                current={pageNum}
+                total={total}
+                pageSize={pageSize}
+                onChange={setPageNum}
+                size={isMobile ? 'small' : 'default'}
+                simple={isMobile}
+              />
             </div>
           </>
         ) : (

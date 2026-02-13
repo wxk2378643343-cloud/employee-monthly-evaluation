@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Card, Table, Select, Button, Tag, Space, Spin, Modal } from 'antd';
+import { Card, Table, Select, Button, Tag, Space, Spin, Modal, Grid } from 'antd';
 import { message } from '@/utils/message';
 import { EditOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import * as scoreApi from '@/api/score';
@@ -8,6 +8,8 @@ import ScoreForm from './ScoreForm';
 import { EvalPeriod, PendingUser, ScoreSubmit, EvalTypeLabel } from '@/types';
 
 const PendingList: React.FC = () => {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [loading, setLoading] = useState(false);
   const [periods, setPeriods] = useState<EvalPeriod[]>([]);
   const [currentPeriodId, setCurrentPeriodId] = useState<number>();
@@ -50,8 +52,8 @@ const PendingList: React.FC = () => {
 
   const columns = [
     { title: '被评价人', dataIndex: 'targetName', key: 'targetName' },
-    { title: '部门', dataIndex: 'deptName', key: 'deptName' },
-    { title: '小组', dataIndex: 'groupName', key: 'groupName' },
+    ...(!isMobile ? [{ title: '部门', dataIndex: 'deptName', key: 'deptName' }] : []),
+    ...(!isMobile ? [{ title: '小组', dataIndex: 'groupName', key: 'groupName' }] : []),
     {
       title: '评价类型',
       dataIndex: 'evalType',
@@ -94,7 +96,7 @@ const PendingList: React.FC = () => {
     <Card
       title="待评分列表"
       extra={
-        <Space>
+        <Space wrap>
           <span>{scoredCount}/{pendingList.length}</span>
           <Select value={currentPeriodId} onChange={setCurrentPeriodId} style={{ width: 220 }}>
             {periods.map((p) => (
@@ -105,7 +107,7 @@ const PendingList: React.FC = () => {
       }
     >
       <Spin spinning={loading}>
-        <Table dataSource={pendingList} columns={columns} rowKey="assignId" pagination={{ pageSize: 10 }} />
+        <Table dataSource={pendingList} columns={columns} rowKey="assignId" pagination={{ pageSize: 10, size: 'small' }} />
       </Spin>
 
       <Modal title="提交评分" open={modalVisible} onCancel={() => setModalVisible(false)} footer={null} destroyOnHidden>

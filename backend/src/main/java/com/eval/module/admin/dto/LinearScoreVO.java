@@ -11,6 +11,7 @@ public class LinearScoreVO {
     private Long targetId;
     private String targetName;
     private String deptName;
+    private String groupName;
     private BigDecimal weightedScore;
     private BigDecimal linearRankScore;
     private Integer deptRank;

@@ -1,5 +1,5 @@
-﻿import React, {useMemo, useState} from 'react';
-import {Layout, Menu} from 'antd';
+import React, {useMemo, useState} from 'react';
+import {Drawer, Layout, Menu} from 'antd';
 import {
     DashboardOutlined,
     TeamOutlined,
@@ -23,7 +23,13 @@ import type {MenuProps} from 'antd';
 const {Sider} = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+    isMobile?: boolean;
+    mobileOpen?: boolean;
+    onMobileClose?: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({isMobile = false, mobileOpen = false, onMobileClose}) => {
     const navigate = useNavigate();
     const location = useLocation();
     const {user} = useAppSelector((state) => state.auth);
@@ -112,8 +118,25 @@ const Sidebar: React.FC = () => {
         return [];
     }, [location.pathname]);
 
-    return (
-        <Sider width={252} className="app-sider">
+    const menuNode = (
+        <Menu
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            openKeys={openKeys.length ? openKeys : defaultOpenKeys}
+            onOpenChange={(keys) => setOpenKeys(keys as string[])}
+            items={menuItems}
+            onClick={({key}) => {
+                navigate(key);
+                if (isMobile) {
+                    onMobileClose?.();
+                }
+            }}
+            style={{height: 'calc(100% - 88px)'}}
+        />
+    );
+
+    const content = (
+        <>
             <div className="app-sider__brand">
                 <div className="app-sider__brand-dot"/>
                 <div>
@@ -121,16 +144,31 @@ const Sidebar: React.FC = () => {
                     <div className="app-sider__brand-sub">EVAL MANAGEMENT</div>
                 </div>
             </div>
+            {menuNode}
+        </>
+    );
 
-            <Menu
-                mode="inline"
-                selectedKeys={[location.pathname]}
-                openKeys={openKeys.length ? openKeys : defaultOpenKeys}
-                onOpenChange={(keys) => setOpenKeys(keys as string[])}
-                items={menuItems}
-                onClick={({key}) => navigate(key)}
-                style={{height: 'calc(100% - 88px)'}}
-            />
+    if (isMobile) {
+        return (
+            <Drawer
+                open={mobileOpen}
+                placement="left"
+                onClose={onMobileClose}
+                width={252}
+                closable={false}
+                className="app-sider-drawer"
+                styles={{body: {padding: 0}}}
+            >
+                <div className="app-sider app-sider--mobile">
+                    {content}
+                </div>
+            </Drawer>
+        );
+    }
+
+    return (
+        <Sider width={252} className="app-sider">
+            {content}
         </Sider>
     );
 };

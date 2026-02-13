@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Row, Col, Statistic, Table, Select, Spin, Button, Progress, Tag, Empty, Space } from 'antd';
+import { Card, Row, Col, Statistic, Table, Select, Spin, Button, Progress, Tag, Empty, Space, Grid } from 'antd';
 import { UserOutlined, CheckCircleOutlined, ClockCircleOutlined, WarningOutlined, BellOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '@/store';
@@ -10,6 +10,8 @@ import * as scoreApi from '@/api/score';
 import * as remindApi from '@/api/remind';
 
 const Dashboard: React.FC = () => {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
   const [loading, setLoading] = useState(false);
@@ -85,9 +87,9 @@ const Dashboard: React.FC = () => {
   return (
     <Spin spinning={loading}>
       <div className="dashboard-page">
-        <div style={{ marginBottom: 16 }}>
-          <span style={{ marginRight: 8 }}>评价周期:</span>
-          <Select value={currentPeriodId} onChange={setCurrentPeriodId} style={{ width: 220 }}>
+        <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <span>评价周期:</span>
+          <Select value={currentPeriodId} onChange={setCurrentPeriodId} style={{ width: isMobile ? 180 : 220 }}>
             {periods.map((p) => (
               <Select.Option key={p.id} value={p.id}>{p.periodName}</Select.Option>
             ))}
@@ -96,10 +98,10 @@ const Dashboard: React.FC = () => {
 
         {isAdmin && statistics && (
           <Row gutter={16} style={{ marginBottom: 24 }}>
-            <Col span={6}><Card><Statistic title="参评人数" value={statistics.totalEmployees} prefix={<UserOutlined />} /></Card></Col>
-            <Col span={6}><Card><Statistic title="已完成" value={statistics.scoredCount} prefix={<CheckCircleOutlined />} /></Card></Col>
-            <Col span={6}><Card><Statistic title="待完成" value={statistics.pendingCount} prefix={<ClockCircleOutlined />} /></Card></Col>
-            <Col span={6}><Card><Statistic title="预警人数" value={statistics.warningCount} prefix={<WarningOutlined />} /></Card></Col>
+            <Col xs={24} sm={12} lg={6}><Card><Statistic title="参评人数" value={statistics.totalEmployees} prefix={<UserOutlined />} /></Card></Col>
+            <Col xs={24} sm={12} lg={6}><Card><Statistic title="已完成" value={statistics.scoredCount} prefix={<CheckCircleOutlined />} /></Card></Col>
+            <Col xs={24} sm={12} lg={6}><Card><Statistic title="待完成" value={statistics.pendingCount} prefix={<ClockCircleOutlined />} /></Card></Col>
+            <Col xs={24} sm={12} lg={6}><Card><Statistic title="预警人数" value={statistics.warningCount} prefix={<WarningOutlined />} /></Card></Col>
           </Row>
         )}
 
@@ -112,7 +114,7 @@ const Dashboard: React.FC = () => {
               columns={[
                 { title: '排名', dataIndex: 'deptRank', key: 'deptRank', width: 80 },
                 { title: '姓名', dataIndex: 'targetName', key: 'targetName' },
-                { title: '小组', dataIndex: 'groupName', key: 'groupName' },
+                ...(!isMobile ? [{ title: '小组', dataIndex: 'groupName', key: 'groupName' }] : []),
                 { title: '综合分', dataIndex: 'weightedScore', key: 'weightedScore' },
               ]}
             />
@@ -146,7 +148,7 @@ const Dashboard: React.FC = () => {
                   <div className="text-muted-sm" style={{ marginTop: 8 }}>
                     本周期共 {pendingList.length} 条评价任务，已完成 {submittedCount} 条
                   </div>
-                  <Space style={{ marginTop: 14 }}>
+                  <Space style={{ marginTop: 14 }} wrap>
                     <Button type="primary" onClick={() => navigate('/score/pending')}>去评分</Button>
                     <Button onClick={() => navigate('/score/submitted')}>查看已提交</Button>
                   </Space>
@@ -178,7 +180,9 @@ const Dashboard: React.FC = () => {
                 locale={{ emptyText: '当前周期暂无评价任务' }}
                 columns={[
                   { title: '被评价人', dataIndex: 'targetName', key: 'targetName' },
-                  { title: '评价类型', dataIndex: 'evalType', key: 'evalType', render: (t: keyof typeof EvalTypeLabel) => EvalTypeLabel[t] || t },
+                  ...(!isMobile
+                    ? [{ title: '评价类型', dataIndex: 'evalType', key: 'evalType', render: (t: keyof typeof EvalTypeLabel) => EvalTypeLabel[t] || t }]
+                    : []),
                   {
                     title: '状态',
                     dataIndex: 'status',
@@ -195,6 +199,7 @@ const Dashboard: React.FC = () => {
                     ),
                   },
                 ]}
+                size="small"
               />
             </Card>
           </>

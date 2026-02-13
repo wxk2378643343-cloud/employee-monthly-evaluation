@@ -1,10 +1,12 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Card, Table, Select, Spin } from 'antd';
+import { Card, Table, Select, Spin, Grid } from 'antd';
 import * as queryApi from '@/api/query';
 import * as adminApi from '@/api/admin';
 import { EvalHistory, EvalPeriod } from '@/types';
 
 const MyHistory: React.FC = () => {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [loading, setLoading] = useState(false);
   const [periods, setPeriods] = useState<EvalPeriod[]>([]);
   const [currentPeriodId, setCurrentPeriodId] = useState<number>();
@@ -32,13 +34,13 @@ const MyHistory: React.FC = () => {
 
   const columns = [
     { title: '周期', dataIndex: 'periodName', key: 'periodName' },
-    { title: '自评', dataIndex: 'selfScore', key: 'selfScore' },
-    { title: '同级', dataIndex: 'peerScore', key: 'peerScore' },
-    { title: '组长', dataIndex: 'groupLeaderScore', key: 'groupLeaderScore' },
-    { title: '部门负责人', dataIndex: 'deptLeaderScore', key: 'deptLeaderScore' },
-    { title: '管理员', dataIndex: 'adminScore', key: 'adminScore' },
+    ...(!isMobile ? [{ title: '自评', dataIndex: 'selfScore', key: 'selfScore' }] : []),
+    ...(!isMobile ? [{ title: '同级', dataIndex: 'peerScore', key: 'peerScore' }] : []),
+    ...(!isMobile ? [{ title: '组长', dataIndex: 'groupLeaderScore', key: 'groupLeaderScore' }] : []),
+    ...(!isMobile ? [{ title: '部门负责人', dataIndex: 'deptLeaderScore', key: 'deptLeaderScore' }] : []),
+    ...(!isMobile ? [{ title: '管理员', dataIndex: 'adminScore', key: 'adminScore' }] : []),
     { title: '综合分', dataIndex: 'weightedScore', key: 'weightedScore' },
-    { title: '线性分', dataIndex: 'linearRankScore', key: 'linearRankScore' },
+    ...(!isMobile ? [{ title: '线性分', dataIndex: 'linearRankScore', key: 'linearRankScore' }] : []),
     { title: '部门排名', dataIndex: 'deptRank', key: 'deptRank' },
   ];
 
@@ -46,7 +48,7 @@ const MyHistory: React.FC = () => {
     <Card
       title="我的历史"
       extra={
-        <Select value={currentPeriodId} onChange={setCurrentPeriodId} style={{ width: 220 }} allowClear>
+        <Select value={currentPeriodId} onChange={setCurrentPeriodId} style={{ width: isMobile ? 180 : 220 }} allowClear>
           {periods.map((p) => (
             <Select.Option key={p.id} value={p.id}>{p.periodName}</Select.Option>
           ))}
@@ -54,7 +56,7 @@ const MyHistory: React.FC = () => {
       }
     >
       <Spin spinning={loading}>
-        <Table dataSource={history} columns={columns} rowKey="recordId" pagination={{ pageSize: 10 }} />
+        <Table dataSource={history} columns={columns} rowKey="recordId" pagination={{ pageSize: 10, size: 'small' }} />
       </Spin>
     </Card>
   );

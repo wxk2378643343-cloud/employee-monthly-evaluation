@@ -1,6 +1,6 @@
-﻿import React from 'react';
-import { Layout, Dropdown, Space, Badge, Popover, List, Button, Empty, Tag, Avatar } from 'antd';
-import { LogoutOutlined, BellOutlined, SettingOutlined, CaretDownFilled } from '@ant-design/icons';
+import React from 'react';
+import { Layout, Dropdown, Space, Badge, Popover, List, Button, Empty, Tag, Avatar, Drawer } from 'antd';
+import { LogoutOutlined, BellOutlined, SettingOutlined, CaretDownFilled, MenuOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { logout } from '@/store/authSlice';
@@ -10,12 +10,18 @@ import type { MenuProps } from 'antd';
 
 const { Header: AntHeader } = Layout;
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  isMobile?: boolean;
+  onToggleSidebar?: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ isMobile = false, onToggleSidebar }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { unreadCount, reminds, loading } = useAppSelector((state) => state.remind);
   const [popoverOpen, setPopoverOpen] = React.useState(false);
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
 
   const handleLogout = async () => {
     await dispatch(logout());
@@ -38,20 +44,30 @@ const Header: React.FC = () => {
   ];
 
   const remindContent = (
-    <div className="remind-popover">
+    <div className={`remind-popover${isMobile ? ' remind-popover--mobile' : ''}`}>
       {reminds.length > 0 ? (
         <>
           <List
             loading={loading}
             dataSource={reminds}
             renderItem={(item) => (
-              <List.Item className="remind-item" onClick={() => dispatch(markRead(item.id))}>
+              <List.Item
+                className={`remind-item${!item.isRead ? ' remind-item--unread' : ''}`}
+                onClick={() => dispatch(markRead(item.id))}
+              >
                 <List.Item.Meta
                   avatar={<Avatar icon={<BellOutlined />} />}
-                  title={<Tag>{item.remindType}</Tag>}
+                  title={
+                    <Space size={8}>
+                      {!item.isRead && <span className="remind-unread-dot" />}
+                      <Tag>{item.remindType}</Tag>
+                    </Space>
+                  }
                   description={
                     <div>
-                      <div>{item.remindContent}</div>
+                      <div className={`remind-content${!item.isRead ? ' remind-content--unread' : ''}`}>
+                        {item.remindContent}
+                      </div>
                       <div className="remind-time">{item.createTime}</div>
                     </div>
                   }
@@ -66,6 +82,7 @@ const Header: React.FC = () => {
                 onClick={() => {
                   dispatch(markAllRead());
                   setPopoverOpen(false);
+                  setDrawerOpen(false);
                 }}
               >
                 全部已读
@@ -74,6 +91,7 @@ const Header: React.FC = () => {
                 type="link"
                 onClick={() => {
                   setPopoverOpen(false);
+                  setDrawerOpen(false);
                   navigate('/remind/list');
                 }}
               >
@@ -91,6 +109,14 @@ const Header: React.FC = () => {
   return (
     <AntHeader className="app-header">
       <div className="app-header__brand">
+        {isMobile && (
+          <Button
+            type="text"
+            icon={<MenuOutlined />}
+            className="app-header__menu-trigger"
+            onClick={onToggleSidebar}
+          />
+        )}
         <div className="app-header__brand-dot" />
         <div className="app-header__title-wrap">
           <div className="app-header__title">员工月度评价系统</div>
@@ -99,25 +125,49 @@ const Header: React.FC = () => {
       </div>
 
       <Space size={16}>
-        <Popover
-          content={remindContent}
-          trigger="click"
-          open={popoverOpen}
-          onOpenChange={(open) => {
-            setPopoverOpen(open);
-            if (open) dispatch(fetchUnreadReminds());
-          }}
-          placement="bottomRight"
-        >
-          <Badge count={unreadCount} size="small">
-            <BellOutlined className="app-header__bell" />
-          </Badge>
-        </Popover>
+        {isMobile ? (
+          <>
+            <Badge count={unreadCount} size="small">
+              <BellOutlined
+                className="app-header__bell"
+                onClick={() => {
+                  setDrawerOpen(true);
+                  dispatch(fetchUnreadReminds());
+                }}
+              />
+            </Badge>
+            <Drawer
+              title="消息"
+              placement="right"
+              width="92vw"
+              open={drawerOpen}
+              onClose={() => setDrawerOpen(false)}
+              className="remind-mobile-drawer"
+            >
+              {remindContent}
+            </Drawer>
+          </>
+        ) : (
+          <Popover
+            content={remindContent}
+            trigger="click"
+            open={popoverOpen}
+            onOpenChange={(open) => {
+              setPopoverOpen(open);
+              if (open) dispatch(fetchUnreadReminds());
+            }}
+            placement="bottomRight"
+          >
+            <Badge count={unreadCount} size="small">
+              <BellOutlined className="app-header__bell" />
+            </Badge>
+          </Popover>
+        )}
 
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
           <Space className="app-header__user" style={{ cursor: 'pointer' }}>
             <span className="app-header__name">{user?.realName}</span>
-            <Tag className="app-header__role" color="red">{user?.role ? RoleLabel[user.role] : ''}</Tag>
+            {!isMobile && <Tag className="app-header__role" color="red">{user?.role ? RoleLabel[user.role] : ''}</Tag>}
             <CaretDownFilled className="app-header__caret" />
           </Space>
         </Dropdown>

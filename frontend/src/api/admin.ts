@@ -1,4 +1,5 @@
-﻿import request from '@/utils/request';
+import axios from 'axios';
+import request from '@/utils/request';
 import {
   Group,
   AssignRow,
@@ -9,7 +10,10 @@ import {
   PeriodStatus,
   SystemRole,
   UserImportResult,
+  AssignGenerateRule,
+  AssignGenerateResult,
 } from '@/types';
+import { getToken } from '@/utils/auth';
 
 export function getDeptList(): Promise<Department[]> {
   return request.get('/depts');
@@ -111,12 +115,45 @@ export function deleteAssign(id: number): Promise<void> {
   return request.delete(`/admin/assigns/${id}`);
 }
 
+export function clearAssignByPeriod(periodId: number): Promise<number> {
+  return request.delete('/admin/assigns', { params: { periodId } });
+}
+
 export function copyAssign(data: { sourcePeriodId: number; targetPeriodId: number }): Promise<void> {
   return request.post('/admin/assigns/copy', null, { params: data });
 }
 
+export function generateAssignByRule(data: AssignGenerateRule): Promise<AssignGenerateResult> {
+  return request.post('/admin/assigns/generate', data);
+}
+
 export function getLinearScoreList(periodId: number, deptId?: number): Promise<LinearScore[]> {
   return request.get('/admin/linear-scores', { params: { periodId, deptId } });
+}
+
+export function exportLinearScoreExcel(periodId: number, deptId?: number): Promise<Blob> {
+  const token = getToken();
+  return axios
+    .get('/api/admin/linear-scores/export', {
+      params: { periodId, deptId },
+      responseType: 'blob',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    })
+    .then((res) => res.data);
+}
+
+export function importLinearScoreExcel(periodId: number, file: File): Promise<{
+  totalRows: number;
+  successCount: number;
+  failedCount: number;
+  errors: string[];
+}> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request.post('/admin/linear-scores/import', formData, {
+    params: { periodId },
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
 }
 
 export function saveLinearScores(data: {
@@ -131,6 +168,14 @@ export function saveLinearScores(data: {
       linearRankScore: s.linearRankScore,
     }))
   );
+}
+
+export function setLinearScore(data: {
+  periodId: number;
+  targetId: number;
+  linearRankScore: number;
+}): Promise<void> {
+  return request.post('/admin/linear-scores', data);
 }
 
 export function getPeriodList(): Promise<EvalPeriod[]> {

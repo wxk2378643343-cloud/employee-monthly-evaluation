@@ -110,11 +110,34 @@ export interface AssignRow {
   status?: number;
 }
 
+export interface AssignGenerateRule {
+  periodId: number;
+  replaceExisting?: boolean;
+  enableSelf?: boolean;
+  enablePeer?: boolean;
+  enableGroupLeader?: boolean;
+  enableDeptLeader?: boolean;
+  enableAdmin?: boolean;
+  selfWeight?: number;
+  peerWeight?: number;
+  groupLeaderWeight?: number;
+  deptLeaderWeight?: number;
+  adminWeight?: number;
+}
+
+export interface AssignGenerateResult {
+  deletedCount: number;
+  createdCount: number;
+  skippedCount: number;
+  totalAfterGenerate: number;
+}
+
 export interface LinearScore {
   recordId: number;
   targetId: number;
   targetName: string;
   deptName?: string;
+  groupName?: string;
   weightedScore?: number;
   linearRankScore?: number;
   deptRank?: number;

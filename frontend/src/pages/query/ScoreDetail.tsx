@@ -1,11 +1,13 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Select, Spin, Empty, Table, Space, Tag, Button } from 'antd';
+import { Card, Select, Spin, Empty, Table, Space, Tag, Button, Grid } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import * as queryApi from '@/api/query';
 import * as adminApi from '@/api/admin';
 import { EvalHistory, EvalPeriod, EvalTypeLabel, ScoreDetailItem, User } from '@/types';
 
 const ScoreDetail: React.FC = () => {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [loading, setLoading] = useState(false);
   const [periods, setPeriods] = useState<EvalPeriod[]>([]);
   const [currentPeriodId, setCurrentPeriodId] = useState<number>();
@@ -54,8 +56,8 @@ const ScoreDetail: React.FC = () => {
 
   return (
     <Card title="评分详情">
-      <Space style={{ marginBottom: 16 }}>
-        <Select value={currentPeriodId} onChange={setCurrentPeriodId} style={{ width: 220 }} placeholder="周期">
+      <Space style={{ marginBottom: 16 }} wrap>
+        <Select value={currentPeriodId} onChange={setCurrentPeriodId} style={{ width: isMobile ? 180 : 220 }} placeholder="周期">
           {periods.map((p) => (
             <Select.Option key={p.id} value={p.id}>{p.periodName}</Select.Option>
           ))}
@@ -63,7 +65,7 @@ const ScoreDetail: React.FC = () => {
         <Select
           value={selectedUserId}
           onChange={setSelectedUserId}
-          style={{ width: 220 }}
+          style={{ width: isMobile ? 180 : 220 }}
           showSearch
           optionFilterProp="children"
           placeholder="员工"
@@ -102,9 +104,10 @@ const ScoreDetail: React.FC = () => {
                 },
                 { title: '评分人', dataIndex: 'scorerName', key: 'scorerName' },
                 { title: '分数', dataIndex: 'score', key: 'score', render: (s: number) => <Tag>{s}</Tag> },
-                { title: '评语', dataIndex: 'comment', key: 'comment' },
-                { title: '时间', dataIndex: 'createTime', key: 'createTime' },
+                ...(!isMobile ? [{ title: '评语', dataIndex: 'comment', key: 'comment' }] : []),
+                ...(!isMobile ? [{ title: '时间', dataIndex: 'createTime', key: 'createTime' }] : []),
               ]}
+              pagination={{ size: 'small' }}
             />
           </>
         ) : (

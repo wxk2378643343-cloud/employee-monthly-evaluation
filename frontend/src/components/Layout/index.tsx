@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Layout as AntLayout } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Grid, Layout as AntLayout } from 'antd';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { fetchUserInfo } from '@/store/authSlice';
@@ -14,6 +14,9 @@ const Layout: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { user, token } = useAppSelector((state) => state.auth);
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.lg;
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -36,15 +39,25 @@ const Layout: React.FC = () => {
     return () => clearInterval(timer);
   }, [dispatch, navigate, user, token]);
 
+  useEffect(() => {
+    if (!isMobile) {
+      setMobileSidebarOpen(false);
+    }
+  }, [isMobile]);
+
   if (!user) {
     return null;
   }
 
   return (
     <AntLayout className="app-layout">
-      <Header />
+      <Header isMobile={isMobile} onToggleSidebar={() => setMobileSidebarOpen((prev) => !prev)} />
       <AntLayout>
-        <Sidebar />
+        <Sidebar
+          isMobile={isMobile}
+          mobileOpen={mobileSidebarOpen}
+          onMobileClose={() => setMobileSidebarOpen(false)}
+        />
         <Content className="app-content">
           <div className="app-content__inner">
             <Outlet />

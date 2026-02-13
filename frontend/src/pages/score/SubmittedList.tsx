@@ -1,10 +1,12 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Card, Table, Select, Spin, Tag } from 'antd';
+import { Card, Table, Select, Spin, Tag, Grid } from 'antd';
 import * as scoreApi from '@/api/score';
 import * as adminApi from '@/api/admin';
 import { EvalPeriod, PendingUser, EvalTypeLabel } from '@/types';
 
 const SubmittedList: React.FC = () => {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [loading, setLoading] = useState(false);
   const [periods, setPeriods] = useState<EvalPeriod[]>([]);
   const [currentPeriodId, setCurrentPeriodId] = useState<number>();
@@ -34,8 +36,8 @@ const SubmittedList: React.FC = () => {
 
   const columns = [
     { title: '被评价人', dataIndex: 'targetName', key: 'targetName' },
-    { title: '部门', dataIndex: 'deptName', key: 'deptName' },
-    { title: '小组', dataIndex: 'groupName', key: 'groupName' },
+    ...(!isMobile ? [{ title: '部门', dataIndex: 'deptName', key: 'deptName' }] : []),
+    ...(!isMobile ? [{ title: '小组', dataIndex: 'groupName', key: 'groupName' }] : []),
     {
       title: '评价类型',
       dataIndex: 'evalType',
@@ -49,7 +51,7 @@ const SubmittedList: React.FC = () => {
     <Card
       title="已提交评价"
       extra={
-        <Select value={currentPeriodId} onChange={setCurrentPeriodId} style={{ width: 220 }}>
+        <Select value={currentPeriodId} onChange={setCurrentPeriodId} style={{ width: isMobile ? 180 : 220 }}>
           {periods.map((p) => (
             <Select.Option key={p.id} value={p.id}>{p.periodName}</Select.Option>
           ))}
@@ -57,7 +59,7 @@ const SubmittedList: React.FC = () => {
       }
     >
       <Spin spinning={loading}>
-        <Table dataSource={records} columns={columns} rowKey="assignId" pagination={{ pageSize: 10 }} />
+        <Table dataSource={records} columns={columns} rowKey="assignId" pagination={{ pageSize: 10, size: 'small' }} />
       </Spin>
     </Card>
   );

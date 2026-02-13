@@ -294,26 +294,105 @@ body {
 
 // ========== 提醒弹窗 ==========
 .remind-popover {
-  width: 350px;
-  max-height: 400px;
+  width: 360px;
+  max-height: 430px;
   overflow: auto;
+  padding: 6px 2px 2px;
+}
+
+.remind-popover .ant-list {
+  padding: 0 4px;
 }
 
 .remind-item {
+  position: relative;
   cursor: pointer;
-  padding: 12px 0;
+  padding: 10px 10px !important;
+  margin: 0 0 8px;
+  border: 1px solid #edf0f6;
+  border-radius: 12px;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+
+.remind-item:hover {
+  border-color: #f0c9c9;
+  background: #fff9f9;
+  box-shadow: 0 8px 18px rgba(24, 30, 42, 0.08);
+}
+
+.remind-item .ant-list-item-meta {
+  align-items: flex-start;
+}
+
+.remind-item .ant-list-item-meta-avatar .ant-avatar {
+  background: #fff2f2;
+  color: #c22828;
+}
+
+.remind-item .ant-list-item-meta-title {
+  margin-bottom: 8px !important;
+}
+
+.remind-item .ant-tag {
+  border-radius: 999px;
+}
+
+.remind-unread-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e53935;
+  box-shadow: 0 0 0 4px rgba(229, 57, 53, 0.14);
+}
+
+.remind-item--unread {
+  border-color: #f3c3c3 !important;
+  box-shadow: 0 8px 18px rgba(208, 44, 44, 0.08);
+}
+
+.remind-item--unread::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #e53935, #c62828);
+}
+
+.remind-content {
+  color: #2f3442;
+}
+
+.remind-content--unread {
+  font-weight: 600;
+  color: #1f2430;
 }
 
 .remind-time {
   font-size: 12px;
-  color: $text-muted;
-  margin-top: 4px;
+  color: #9197a6;
+  margin-top: 6px;
 }
 
 .remind-footer {
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), #fff 28%);
   text-align: center;
-  padding: 8px 0;
-  border-top: 1px solid $border-light;
+  padding: 10px 8px 6px;
+  border-top: none;
+}
+
+.remind-footer .ant-space {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.remind-footer .ant-btn-link {
+  padding: 0;
 }
 
 // ========== 布局 ==========
@@ -1204,4 +1283,131 @@ body {
 .login-v2__panel .ant-input-focused {
   border-color: #d32f2f !important;
   box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.12) !important;
+}
+
+/* ===== Mobile Adaptation ===== */
+.app-sider-drawer .ant-drawer-content,
+.app-sider-drawer .ant-drawer-body {
+  background: transparent !important;
+}
+
+.remind-mobile-drawer .ant-drawer-header {
+  padding: 12px 16px;
+}
+
+.remind-mobile-drawer .ant-drawer-body {
+  padding: 10px 12px 12px;
+  background: #f7f8fb;
+}
+
+.app-sider--mobile {
+  height: 100%;
+}
+
+.app-header__menu-trigger {
+  color: #fff !important;
+  margin-inline-end: 2px;
+}
+
+.app-header__menu-trigger:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+}
+
+.ant-table-wrapper .ant-table-container {
+  overflow-x: auto;
+}
+
+@media (max-width: 992px) {
+  .app-header {
+    padding: 0 12px !important;
+    height: 56px !important;
+  }
+
+  .app-header__title {
+    font-size: 14px;
+  }
+
+  .app-header__name {
+    max-width: 88px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .app-content {
+    padding: 12px !important;
+  }
+
+  .app-content__inner {
+    min-height: calc(100vh - 80px);
+  }
+
+  .ant-card-head-wrapper {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+
+  .ant-card .ant-card-extra {
+    margin-inline-start: 0;
+    padding-inline-start: 0;
+  }
+
+  .remind-popover {
+    width: min(92vw, 350px);
+  }
+
+}
+
+@media (max-width: 768px) {
+  .app-header__subtitle,
+  .app-header__brand-dot {
+    display: none;
+  }
+
+  .ant-card .ant-card-head,
+  .ant-card .ant-card-body {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .ant-modal {
+    max-width: calc(100vw - 20px);
+    margin: 10px auto;
+  }
+
+  .ant-table-wrapper .ant-table-pagination-right {
+    justify-content: center;
+  }
+
+  .remind-list-mobile .ant-list-item-meta-avatar {
+    display: none;
+  }
+
+  .remind-list-mobile-item {
+    padding: 10px 0 !important;
+  }
+
+  .remind-list-mobile-item .ant-list-item-action {
+    margin-inline-start: 0 !important;
+    margin-top: 8px;
+  }
+
+  .remind-list-mobile-item .ant-list-item-action > li {
+    padding: 0 !important;
+  }
+}
+
+.remind-popover--mobile {
+  width: 100%;
+  max-height: none;
+  padding: 0;
+}
+
+.remind-popover--mobile .remind-item {
+  margin-bottom: 10px;
+}
+
+.remind-popover--mobile .remind-footer {
+  background: transparent;
+  padding-inline: 0;
 }

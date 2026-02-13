@@ -1,11 +1,13 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Table, Select, Button, Tag, Space, Spin, Modal, Form, Radio } from 'antd';
+import { Card, Table, Select, Button, Tag, Space, Spin, Modal, Form, Radio, Grid } from 'antd';
 import { message } from '@/utils/message';
 import * as scoreApi from '@/api/score';
 import * as adminApi from '@/api/admin';
 import { EvalPeriod, VoteCandidate, VoteRecord } from '@/types';
 
 const VotePage: React.FC = () => {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [loading, setLoading] = useState(false);
   const [periods, setPeriods] = useState<EvalPeriod[]>([]);
   const [currentPeriodId, setCurrentPeriodId] = useState<number>();
@@ -53,7 +55,7 @@ const VotePage: React.FC = () => {
   const columns = [
     { title: '排名', dataIndex: 'deptRank', key: 'deptRank' },
     { title: '姓名', dataIndex: 'targetName', key: 'targetName' },
-    { title: '小组', dataIndex: 'groupName', key: 'groupName' },
+    ...(!isMobile ? [{ title: '小组', dataIndex: 'groupName', key: 'groupName' }] : []),
     {
       title: '综合分',
       dataIndex: 'weightedScore',
@@ -103,8 +105,8 @@ const VotePage: React.FC = () => {
     <Card
       title="投票"
       extra={
-        <Space>
-          <Select value={currentPeriodId} onChange={setCurrentPeriodId} style={{ width: 220 }}>
+        <Space wrap>
+          <Select value={currentPeriodId} onChange={setCurrentPeriodId} style={{ width: isMobile ? 180 : 220 }}>
             {periods.map((p) => (
               <Select.Option key={p.id} value={p.id}>{p.periodName}</Select.Option>
             ))}
@@ -113,7 +115,7 @@ const VotePage: React.FC = () => {
       }
     >
       <Spin spinning={loading}>
-        <Table dataSource={merged} columns={columns} rowKey="targetId" pagination={{ pageSize: 10 }} />
+        <Table dataSource={merged} columns={columns} rowKey="targetId" pagination={{ pageSize: 10, size: 'small' }} />
       </Spin>
 
       <Modal title="投票" open={modalVisible} onOk={handleSubmit} onCancel={() => setModalVisible(false)}>
