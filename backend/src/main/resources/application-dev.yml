@@ -1,7 +1,7 @@
-﻿spring:
+spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/eval_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:eval_db}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:123456}
 
@@ -20,3 +20,4 @@
 dingtalk:
   webhook-url: ${DINGTALK_WEBHOOK_URL:https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN}
   secret: ${DINGTALK_SECRET:YOUR_SECRET}
+

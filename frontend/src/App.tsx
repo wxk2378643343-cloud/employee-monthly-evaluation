@@ -12,6 +12,7 @@ import PeriodManage from '@/pages/admin/PeriodManage';
 import DeptManage from '@/pages/admin/DeptManage';
 import UserManage from '@/pages/admin/UserManage';
 import RoleManage from '@/pages/admin/RoleManage';
+import UserImport from '@/pages/admin/UserImport';
 import PendingList from '@/pages/score/PendingList';
 import SubmittedList from '@/pages/score/SubmittedList';
 import VotePage from '@/pages/score/VotePage';
@@ -87,6 +88,7 @@ const App: React.FC = () => {
             <Route path="admin/depts" element={<RequirePerm allow={canManageDept} element={<DeptManage />} />} />
             <Route path="admin/groups" element={<RequirePerm allow={canManageGroup} element={<GroupManage />} />} />
             <Route path="admin/users" element={<RequirePerm allow={canManageUser} element={<UserManage />} />} />
+            <Route path="admin/user-import" element={<RequirePerm allow={canManageUser} element={<UserImport />} />} />
             <Route path="admin/roles" element={<RequirePerm allow={canManageRole} element={<RoleManage />} />} />
             <Route path="admin/assign" element={<RequirePerm allow={canManageAssign} element={<AssignConfig />} />} />
             <Route

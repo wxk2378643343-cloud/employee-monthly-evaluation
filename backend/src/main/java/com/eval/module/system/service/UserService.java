@@ -5,18 +5,32 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.eval.common.exception.BusinessException;
 import com.eval.module.system.dto.ProfileUpdateDTO;
+import com.eval.module.system.dto.UserImportResultVO;
 import com.eval.module.system.dto.UserInfoVO;
 import com.eval.module.system.entity.SysDepartment;
 import com.eval.module.system.entity.SysGroup;
+import com.eval.module.system.entity.SysRole;
 import com.eval.module.system.entity.SysUser;
 import com.eval.module.system.mapper.SysDepartmentMapper;
 import com.eval.module.system.mapper.SysGroupMapper;
 import com.eval.module.system.mapper.SysUserMapper;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +41,7 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
     private final PasswordEncoder passwordEncoder;
     private final RoleService roleService;
     private final PermissionService permissionService;
+    private static final String DEFAULT_IMPORT_PASSWORD = "123456";
 
     public SysUser getByUsername(String username) {
         return getOne(new LambdaQueryWrapper<SysUser>()
@@ -97,6 +112,85 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
         save(user);
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    public UserImportResultVO importUsersFromExcel(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(400, "Please upload an Excel file");
+        }
+
+        UserImportResultVO result = new UserImportResultVO();
+        DataFormatter formatter = new DataFormatter();
+        Map<String, SysDepartment> deptCache = new HashMap<>();
+        Map<String, SysGroup> groupCache = new HashMap<>();
+        Map<String, String> roleNameCache = buildRoleNameCache();
+
+        try (InputStream inputStream = file.getInputStream();
+             Workbook workbook = WorkbookFactory.create(inputStream)) {
+            Sheet sheet = workbook.getNumberOfSheets() > 0 ? workbook.getSheetAt(0) : null;
+            if (sheet == null) {
+                throw new BusinessException(400, "No worksheet found in Excel");
+            }
+            int lastRowNum = sheet.getLastRowNum();
+            for (int i = 1; i <= lastRowNum; i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) {
+                    continue;
+                }
+                String deptName = readCell(row, 0, formatter);
+                String groupName = readCell(row, 1, formatter);
+                String realName = readCell(row, 2, formatter);
+                String username = readCell(row, 3, formatter);
+                String roleText = readCell(row, 4, formatter);
+                String phone = readCell(row, 5, formatter);
+
+                if (isBlank(deptName) && isBlank(groupName) && isBlank(realName) && isBlank(username) && isBlank(roleText)) {
+                    continue;
+                }
+                result.setTotalRows(result.getTotalRows() + 1);
+                try {
+                    String roleCode = resolveRoleCode(roleText, roleNameCache);
+                    Long deptId = null;
+                    Long groupId = null;
+
+                    if (!"ADMIN".equals(roleCode)) {
+                        if (isBlank(deptName)) {
+                            throw new BusinessException(400, "Department is required for this role");
+                        }
+                        SysDepartment department = getOrCreateDepartment(deptName, deptCache);
+                        deptId = department.getId();
+                    }
+
+                    if ("EMPLOYEE".equals(roleCode) || "GROUP_LEADER".equals(roleCode)) {
+                        if (isBlank(groupName)) {
+                            throw new BusinessException(400, "Group is required for this role");
+                        }
+                        SysGroup group = getOrCreateGroup(groupName, deptId, groupCache);
+                        groupId = group.getId();
+                    } else if (!isBlank(groupName)) {
+                        SysGroup group = getOrCreateGroup(groupName, deptId, groupCache);
+                        groupId = group.getId();
+                    }
+
+                    upsertUser(username, realName, roleCode, deptId, groupId, phone, result);
+                    result.setSuccessCount(result.getSuccessCount() + 1);
+                } catch (BusinessException ex) {
+                    result.setFailedCount(result.getFailedCount() + 1);
+                    result.getErrors().add("Row " + (i + 1) + ": " + ex.getMessage());
+                } catch (Exception ex) {
+                    result.setFailedCount(result.getFailedCount() + 1);
+                    result.getErrors().add("Row " + (i + 1) + ": " + ex.getMessage());
+                }
+            }
+        } catch (IOException ex) {
+            throw new BusinessException(400, "Failed to read uploaded file");
+        } catch (BusinessException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new BusinessException(400, "Invalid Excel format");
+        }
+        return result;
+    }
+
     public void updateUser(SysUser payload) {
         SysUser existing = getById(payload.getId());
         if (existing == null) {
@@ -147,5 +241,140 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
         }
         user.setPassword(passwordEncoder.encode(newPassword));
         updateById(user);
+    }
+
+    private Map<String, String> buildRoleNameCache() {
+        Map<String, String> roleCache = new HashMap<>();
+        List<SysRole> roles = roleService.listEnabled();
+        for (SysRole role : roles) {
+            if (role.getRoleCode() != null) {
+                roleCache.put(role.getRoleCode().trim().toUpperCase(Locale.ROOT), role.getRoleCode().trim().toUpperCase(Locale.ROOT));
+            }
+            if (role.getRoleName() != null) {
+                roleCache.put(role.getRoleName().trim(), role.getRoleCode().trim().toUpperCase(Locale.ROOT));
+            }
+        }
+        roleCache.put("普通员工", "EMPLOYEE");
+        roleCache.put("网格长", "GROUP_LEADER");
+        roleCache.put("分管领导", "DEPT_LEADER");
+        roleCache.put("单位领导", "ADMIN");
+        roleCache.put("管理员", "ADMIN");
+        roleCache.put("部门负责人", "DEPT_LEADER");
+        roleCache.put("小组负责人", "GROUP_LEADER");
+        return roleCache;
+    }
+
+    private String resolveRoleCode(String roleText, Map<String, String> roleNameCache) {
+        if (isBlank(roleText)) {
+            throw new BusinessException(400, "Role is required");
+        }
+        String raw = roleText.trim();
+        String upper = raw.toUpperCase(Locale.ROOT);
+        if (roleNameCache.containsKey(raw)) {
+            return roleNameCache.get(raw);
+        }
+        if (roleNameCache.containsKey(upper)) {
+            return roleNameCache.get(upper);
+        }
+        throw new BusinessException(400, "Role not supported: " + raw);
+    }
+
+    private SysDepartment getOrCreateDepartment(String deptName, Map<String, SysDepartment> deptCache) {
+        String key = deptName.trim();
+        if (deptCache.containsKey(key)) {
+            return deptCache.get(key);
+        }
+        SysDepartment dept = deptMapper.selectOne(new LambdaQueryWrapper<SysDepartment>()
+                .eq(SysDepartment::getDeptName, key)
+                .last("limit 1"));
+        if (dept == null) {
+            dept = new SysDepartment();
+            dept.setDeptName(key);
+            dept.setStatus(1);
+            dept.setSortOrder(0);
+            deptMapper.insert(dept);
+        }
+        deptCache.put(key, dept);
+        return dept;
+    }
+
+    private SysGroup getOrCreateGroup(String groupName, Long deptId, Map<String, SysGroup> groupCache) {
+        if (deptId == null) {
+            throw new BusinessException(400, "Department is required before group");
+        }
+        String name = groupName.trim();
+        String key = deptId + "::" + name;
+        if (groupCache.containsKey(key)) {
+            return groupCache.get(key);
+        }
+        SysGroup group = groupMapper.selectOne(new LambdaQueryWrapper<SysGroup>()
+                .eq(SysGroup::getDeptId, deptId)
+                .eq(SysGroup::getGroupName, name)
+                .last("limit 1"));
+        if (group == null) {
+            group = new SysGroup();
+            group.setDeptId(deptId);
+            group.setGroupName(name);
+            group.setStatus(1);
+            group.setSortOrder(0);
+            groupMapper.insert(group);
+        }
+        groupCache.put(key, group);
+        return group;
+    }
+
+    private void upsertUser(String username,
+                            String realName,
+                            String roleCode,
+                            Long deptId,
+                            Long groupId,
+                            String phone,
+                            UserImportResultVO result) {
+        if (isBlank(username)) {
+            throw new BusinessException(400, "Username is required");
+        }
+        if (isBlank(realName)) {
+            throw new BusinessException(400, "Real name is required");
+        }
+        roleService.validateAssignableRole(roleCode);
+
+        SysUser existing = getOne(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getUsername, username.trim())
+                .last("limit 1"));
+        if (existing == null) {
+            SysUser user = new SysUser();
+            user.setUsername(username.trim());
+            user.setRealName(realName.trim());
+            user.setRole(roleCode);
+            user.setDeptId(deptId);
+            user.setGroupId(groupId);
+            user.setPhone(isBlank(phone) ? null : phone.trim());
+            user.setStatus(1);
+            user.setPassword(passwordEncoder.encode(DEFAULT_IMPORT_PASSWORD));
+            save(user);
+            result.setCreatedCount(result.getCreatedCount() + 1);
+            return;
+        }
+        existing.setRealName(realName.trim());
+        existing.setRole(roleCode);
+        existing.setDeptId(deptId);
+        existing.setGroupId(groupId);
+        existing.setPhone(isBlank(phone) ? null : phone.trim());
+        if (existing.getStatus() == null) {
+            existing.setStatus(1);
+        }
+        updateById(existing);
+        result.setUpdatedCount(result.getUpdatedCount() + 1);
+    }
+
+    private String readCell(Row row, int index, DataFormatter formatter) {
+        if (row.getCell(index) == null) {
+            return "";
+        }
+        return formatter.formatCellValue(row.getCell(index)).trim();
+    }
+
+    private boolean isBlank(String text) {
+        return text == null || text.trim().isEmpty();
     }
 }

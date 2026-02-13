@@ -1,5 +1,15 @@
 ﻿import request from '@/utils/request';
-import { Group, AssignRow, LinearScore, EvalPeriod, User, Department, PeriodStatus, SystemRole } from '@/types';
+import {
+  Group,
+  AssignRow,
+  LinearScore,
+  EvalPeriod,
+  User,
+  Department,
+  PeriodStatus,
+  SystemRole,
+  UserImportResult,
+} from '@/types';
 
 export function getDeptList(): Promise<Department[]> {
   return request.get('/depts');
@@ -68,6 +78,16 @@ export function resetUserPassword(id: number, newPassword: string): Promise<void
 
 export function deleteUser(id: number): Promise<void> {
   return request.delete(`/users/${id}`);
+}
+
+export function importUsersByExcel(file: File): Promise<UserImportResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request.post('/users/import', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 }
 
 export function getAssignList(periodId: number): Promise<AssignRow[]> {

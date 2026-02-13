@@ -12,6 +12,7 @@ import {
     CheckSquareOutlined,
     ApartmentOutlined,
     UserOutlined,
+    InboxOutlined,
 } from '@ant-design/icons';
 import {useNavigate, useLocation} from 'react-router-dom';
 import {useAppSelector} from '@/store';
@@ -46,6 +47,7 @@ const Sidebar: React.FC = () => {
         ...(canManageDept ? [{key: '/admin/depts', icon: <ApartmentOutlined/>, label: '部门管理'}] : []),
         ...(canManageGroup ? [{key: '/admin/groups', icon: <TeamOutlined/>, label: '小组管理'}] : []),
         ...(canManageUser ? [{key: '/admin/users', icon: <UserOutlined/>, label: '用户管理'}] : []),
+        ...(canManageUser ? [{key: '/admin/user-import', icon: <InboxOutlined/>, label: '用户导入'}] : []),
         ...(canManageRole ? [{key: '/admin/roles', icon: <UserOutlined/>, label: '角色管理'}] : []),
         ...(canManageAssign ? [{key: '/admin/assign', icon: <UserSwitchOutlined/>, label: '评分分配'}] : []),
         ...(canManageLinear ? [{key: '/admin/linear-score', icon: <OrderedListOutlined/>, label: '线性分'}] : []),

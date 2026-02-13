@@ -4,12 +4,14 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.eval.common.exception.BusinessException;
 import com.eval.common.result.Result;
 import com.eval.common.utils.SecurityUtils;
+import com.eval.module.system.dto.UserImportResultVO;
 import com.eval.module.system.dto.UserInfoVO;
 import com.eval.module.system.entity.SysUser;
 import com.eval.module.system.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -71,6 +73,12 @@ public class UserController {
     public Result<Void> resetPassword(@PathVariable Long id, @RequestParam String newPassword) {
         userService.resetPassword(id, newPassword);
         return Result.success();
+    }
+
+    @PostMapping("/import")
+    @PreAuthorize("hasAuthority('user:manage')")
+    public Result<UserImportResultVO> importUsers(@RequestParam("file") MultipartFile file) {
+        return Result.success(userService.importUsersFromExcel(file));
     }
 
     @GetMapping("/by-group/{groupId}")

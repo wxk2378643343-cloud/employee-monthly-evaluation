@@ -57,6 +57,15 @@ export interface SystemRole {
   status: number;
 }
 
+export interface UserImportResult {
+  totalRows: number;
+  successCount: number;
+  createdCount: number;
+  updatedCount: number;
+  failedCount: number;
+  errors: string[];
+}
+
 export interface EvalPeriod {
   id: number;
   periodName: string;
