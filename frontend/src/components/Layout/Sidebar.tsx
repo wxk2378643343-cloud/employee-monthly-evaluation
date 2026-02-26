@@ -131,7 +131,7 @@ const Sidebar: React.FC<SidebarProps> = ({isMobile = false, mobileOpen = false, 
                     onMobileClose?.();
                 }
             }}
-            style={{height: 'calc(100% - 88px)'}}
+            style={{height: 'calc(100% - 88px)', overflowY: 'auto', overflowX: 'hidden'}}
         />
     );
 

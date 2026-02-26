@@ -1411,3 +1411,35 @@ body {
   background: transparent;
   padding-inline: 0;
 }
+
+/* ===== Layout Scroll Fix ===== */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  overflow: hidden;
+}
+
+.app-layout {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-layout > .ant-layout {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-content {
+  min-height: 0 !important;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.app-content__inner {
+  min-height: min-content;
+}
