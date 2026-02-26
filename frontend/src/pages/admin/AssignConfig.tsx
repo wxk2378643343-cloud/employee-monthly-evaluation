@@ -12,10 +12,10 @@ interface GroupConfigRow {
   targetEmployeeIds: number[];
   groupLeaderIds: number[];
   deptLeaderIds: number[];
-  enableSelf: boolean;
+  enablePeer: boolean;
   groupWeight: number;
   deptWeight: number;
-  selfWeight: number;
+  peerWeight: number;
   linearWeight: number;
 }
 
@@ -61,10 +61,10 @@ const AssignConfig: React.FC = () => {
         targetEmployeeIds: [],
         groupLeaderIds: [],
         deptLeaderIds: [],
-        enableSelf: true,
+        enablePeer: true,
         groupWeight: 30,
         deptWeight: 30,
-        selfWeight: 40,
+        peerWeight: 40,
         linearWeight: 0,
       }))
     );
@@ -147,9 +147,13 @@ const AssignConfig: React.FC = () => {
   };
 
   const onSaveConfig = async (): Promise<boolean> => {
-    if (!currentPeriodId) return false;
+    if (!currentPeriodId) {
+      message.warning('请先选择考核周期');
+      return false;
+    }
     const rows: AssignRow[] = [];
     const uniq = new Set<string>();
+    const peerNeedMoreEmployeesGroups: string[] = [];
     const addRow = (row: AssignRow) => {
       const key = `${row.scorerId}_${row.targetId}_${row.evalType}`;
       if (uniq.has(key)) return;
@@ -178,14 +182,24 @@ const AssignConfig: React.FC = () => {
         });
       });
 
-      if (cfg.enableSelf) {
-        targets.forEach((target) => {
-          addRow({ periodId: currentPeriodId, scorerId: target.id, targetId: target.id, evalType: 'SELF', weight: cfg.selfWeight });
+      if (cfg.enablePeer) {
+        if (targets.length < 2) {
+          peerNeedMoreEmployeesGroups.push(cfg.groupName);
+        }
+        targets.forEach((scorer) => {
+          targets.forEach((target) => {
+            if (scorer.id === target.id) return;
+            addRow({ periodId: currentPeriodId, scorerId: scorer.id, targetId: target.id, evalType: 'PEER', weight: cfg.peerWeight });
+          });
         });
       }
     });
 
     if (!rows.length) {
+      if (peerNeedMoreEmployeesGroups.length) {
+        message.warning(`以下小组开启了员工互评，但员工人数不足 2 人：${peerNeedMoreEmployeesGroups.join('、')}`);
+        return false;
+      }
       message.warning('没有可保存的数据，请先在网格行里选择员工和评分人');
       return false;
     }
@@ -197,6 +211,8 @@ const AssignConfig: React.FC = () => {
       message.success(`保存成功，新增/更新 ${rows.length} 条`);
       await reloadAssigns(currentPeriodId);
       return true;
+    } catch {
+      return false;
     } finally {
       setSaving(false);
     }
@@ -279,19 +295,19 @@ const AssignConfig: React.FC = () => {
       ),
     },
     {
-      title: '员工自评',
-      key: 'enableSelf',
+      title: '员工互评',
+      key: 'enablePeer',
       width: 90,
       render: (_: unknown, row: GroupConfigRow) => (
-        <Switch checked={row.enableSelf} onChange={(v) => updateRow(row.groupId, { enableSelf: v })} />
+        <Switch checked={row.enablePeer} onChange={(v) => updateRow(row.groupId, { enablePeer: v })} />
       ),
     },
     {
-      title: '自评权重',
-      key: 'selfWeight',
+      title: '互评权重',
+      key: 'peerWeight',
       width: 100,
       render: (_: unknown, row: GroupConfigRow) => (
-        <InputWeight value={row.selfWeight} onChange={(v) => updateRow(row.groupId, { selfWeight: v })} />
+        <InputWeight value={row.peerWeight} onChange={(v) => updateRow(row.groupId, { peerWeight: v })} />
       ),
     },
     {
@@ -325,7 +341,7 @@ const AssignConfig: React.FC = () => {
         description={
           <div>
             <div>1. 综合分 = 各评价类型均分 × 对应权重%。</div>
-            <div>2. 本页配置：网格评分、部门评分、员工自评（自评保留）。</div>
+            <div>2. 本页配置：网格评分、部门评分、员工互评。</div>
             <div>3. 线性分在“线性分”页面维护，建议最终分 = 综合分 + 线性分。</div>
             <Button type="link" style={{ paddingLeft: 0 }} onClick={() => navigate('/admin/linear-score')}>去维护线性分</Button>
           </div>

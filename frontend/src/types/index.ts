@@ -92,7 +92,7 @@ export type EvalType = 'SELF' | 'PEER' | 'GROUP_LEADER' | 'DEPT_LEADER' | 'ADMIN
 
 export const EvalTypeLabel: Record<EvalType, string> = {
   SELF: '自评',
-  PEER: '同级评价',
+  PEER: '员工互评',
   GROUP_LEADER: '小组负责人评价',
   DEPT_LEADER: '部门负责人评价',
   ADMIN: '管理员评价',
