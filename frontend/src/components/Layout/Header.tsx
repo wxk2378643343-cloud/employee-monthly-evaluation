@@ -23,6 +23,17 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false, onToggleSidebar }) =>
   const [popoverOpen, setPopoverOpen] = React.useState(false);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
+  const jumpByRemind = (item: { id: number; remindType: string; periodId?: number }) => {
+    dispatch(markRead(item.id));
+    setPopoverOpen(false);
+    setDrawerOpen(false);
+    if (item.remindType === 'VOTE') {
+      navigate(item.periodId ? `/vote/list?periodId=${item.periodId}` : '/vote/list');
+      return;
+    }
+    navigate(item.periodId ? `/score/pending?periodId=${item.periodId}` : '/score/pending');
+  };
+
   const handleLogout = async () => {
     await dispatch(logout());
     navigate('/login');
@@ -53,7 +64,7 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false, onToggleSidebar }) =>
             renderItem={(item) => (
               <List.Item
                 className={`remind-item${!item.isRead ? ' remind-item--unread' : ''}`}
-                onClick={() => dispatch(markRead(item.id))}
+                onClick={() => jumpByRemind(item as { id: number; remindType: string; periodId?: number })}
               >
                 <List.Item.Meta
                   avatar={<Avatar icon={<BellOutlined />} />}

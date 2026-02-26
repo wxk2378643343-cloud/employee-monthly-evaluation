@@ -2,6 +2,7 @@
 import { Card, Table, Select, Button, Tag, Space, Spin, Modal, Grid } from 'antd';
 import { message } from '@/utils/message';
 import { EditOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { useSearchParams } from 'react-router-dom';
 import * as scoreApi from '@/api/score';
 import * as adminApi from '@/api/admin';
 import ScoreForm from './ScoreForm';
@@ -10,6 +11,7 @@ import { EvalPeriod, PendingUser, ScoreSubmit, EvalTypeLabel } from '@/types';
 const PendingList: React.FC = () => {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [periods, setPeriods] = useState<EvalPeriod[]>([]);
   const [currentPeriodId, setCurrentPeriodId] = useState<number>();
@@ -28,6 +30,11 @@ const PendingList: React.FC = () => {
   const loadPeriods = async () => {
     const data = await adminApi.getPeriodList();
     setPeriods(data);
+    const queryPeriodId = Number(searchParams.get('periodId') || 0);
+    if (queryPeriodId && data.some((p) => p.id === queryPeriodId)) {
+      setCurrentPeriodId(queryPeriodId);
+      return;
+    }
     const active = data.find((p) => p.status === 1) || data[0];
     if (active) setCurrentPeriodId(active.id);
   };
@@ -131,5 +138,3 @@ const PendingList: React.FC = () => {
 };
 
 export default PendingList;
-
-

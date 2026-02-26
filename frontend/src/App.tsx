@@ -18,7 +18,6 @@ import SubmittedList from '@/pages/score/SubmittedList';
 import VotePage from '@/pages/score/VotePage';
 import MyHistory from '@/pages/query/MyHistory';
 import ScoreDetail from '@/pages/query/ScoreDetail';
-import DeptRank from '@/pages/query/DeptRank';
 import RemindList from '@/pages/remind/RemindList';
 import ProfilePage from '@/pages/profile';
 import { useAppSelector } from '@/store';
@@ -38,8 +37,6 @@ const App: React.FC = () => {
   const canVote = hasPermission(user, PermissionCode.VOTE_VIEW) || isAdminRole(user?.role) || isLeaderRole(user?.role);
   const canQueryDetail =
     hasPermission(user, PermissionCode.QUERY_DETAIL_VIEW) || isAdminRole(user?.role) || isLeaderRole(user?.role);
-  const canQueryRank =
-    hasPermission(user, PermissionCode.QUERY_RANK_VIEW) || isAdminRole(user?.role) || user?.role === 'DEPT_LEADER';
 
   const canManageDept = hasPermission(user, PermissionCode.DEPT_MANAGE) || isAdminRole(user?.role);
   const canManageGroup = hasPermission(user, PermissionCode.GROUP_MANAGE) || isAdminRole(user?.role);
@@ -103,7 +100,6 @@ const App: React.FC = () => {
 
             <Route path="query/history" element={<MyHistory />} />
             <Route path="query/detail" element={<RequirePerm allow={canQueryDetail} element={<ScoreDetail />} />} />
-            <Route path="query/rank" element={<RequirePerm allow={canQueryRank} element={<DeptRank />} />} />
 
             <Route path="remind/list" element={<RemindList />} />
             <Route path="profile" element={<ProfilePage />} />

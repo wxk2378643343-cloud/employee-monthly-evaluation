@@ -48,21 +48,21 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
         String periodName = period != null ? period.getPeriodName() : "Current period";
 
         for (Long userId : unscoredUserIds) {
-            SysUser user = userService.getById(userId);
-            if (user == null) continue;
-
-            String content = String.format("[%s] You still have pending evaluation tasks.", periodName);
-            boolean sent = dingTalkService.sendTextMessage(String.format("%s %s", user.getRealName(), content));
-
-            RemindRecord record = new RemindRecord();
-            record.setPeriodId(periodId);
-            record.setUserId(userId);
-            record.setRemindType("SCORE");
-            record.setRemindWay("DINGTALK");
-            record.setSendStatus(sent ? 1 : 2);
-            record.setSendTime(LocalDateTime.now());
-            save(record);
+            sendScoreRemind(periodId, periodName, userId);
         }
+    }
+
+    public void remindSingleUser(Long periodId, Long userId) {
+        Long pendingCount = assignMapper.selectCount(new LambdaQueryWrapper<EvalScoreAssign>()
+                .eq(EvalScoreAssign::getPeriodId, periodId)
+                .eq(EvalScoreAssign::getScorerId, userId)
+                .eq(EvalScoreAssign::getStatus, 0));
+        if (pendingCount == null || pendingCount <= 0) {
+            throw new BusinessException(400, "This user has no pending evaluation tasks");
+        }
+        EvalPeriod period = periodService.getById(periodId);
+        String periodName = period != null ? period.getPeriodName() : "Current period";
+        sendScoreRemind(periodId, periodName, userId);
     }
 
     public List<RemindRecord> listByPeriod(Long periodId) {
@@ -139,5 +139,23 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
         EvalPeriod period = periodService.getById(record.getPeriodId());
         String periodName = period != null ? period.getPeriodName() : "Current period";
         return String.format("%s reminder for %s", typeLabel, periodName);
+    }
+
+    private void sendScoreRemind(Long periodId, String periodName, Long userId) {
+        SysUser user = userService.getById(userId);
+        if (user == null) {
+            return;
+        }
+        String content = String.format("[%s] You still have pending evaluation tasks.", periodName);
+        boolean sent = dingTalkService.sendTextMessage(String.format("%s %s", user.getRealName(), content));
+
+        RemindRecord record = new RemindRecord();
+        record.setPeriodId(periodId);
+        record.setUserId(userId);
+        record.setRemindType("SCORE");
+        record.setRemindWay("DINGTALK");
+        record.setSendStatus(sent ? 1 : 2);
+        record.setSendTime(LocalDateTime.now());
+        save(record);
     }
 }

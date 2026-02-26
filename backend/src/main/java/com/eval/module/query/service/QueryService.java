@@ -14,6 +14,7 @@ import com.eval.module.score.entity.EvalDetail;
 import com.eval.module.score.entity.EvalRecord;
 import com.eval.module.score.mapper.EvalDetailMapper;
 import com.eval.module.score.mapper.EvalRecordMapper;
+import com.eval.module.score.service.ScoreCalculateService;
 import com.eval.module.system.entity.SysDepartment;
 import com.eval.module.system.entity.SysGroup;
 import com.eval.module.system.entity.SysUser;
@@ -37,6 +38,7 @@ public class QueryService {
     private final DeptService deptService;
     private final GroupService groupService;
     private final EvalScoreAssignMapper assignMapper;
+    private final ScoreCalculateService scoreCalculateService;
 
     public List<EvalHistoryVO> getMyHistory() {
         Long currentUserId = SecurityUtils.getCurrentUserId();
@@ -98,6 +100,9 @@ public class QueryService {
                 throw new BusinessException(403, "No permission to view details for this user");
             }
         }
+
+        // Recalculate and persist weighted score when all assignments for this target are completed.
+        scoreCalculateService.calculateTargetIfAllScored(periodId, targetId);
 
         List<EvalDetail> details = evalDetailMapper.selectList(
                 new LambdaQueryWrapper<EvalDetail>()

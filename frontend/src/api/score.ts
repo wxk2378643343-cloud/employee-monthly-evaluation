@@ -9,6 +9,10 @@ export function submitScore(data: ScoreSubmit): Promise<void> {
   return request.post('/scores/submit', data);
 }
 
+export function calculateScores(periodId: number): Promise<void> {
+  return request.post(`/scores/calculate/${periodId}`);
+}
+
 export function getMySubmitted(periodId: number): Promise<PendingUser[]> {
   return getPendingList(periodId).then((list) => list.filter((item) => item.status === 1));
 }

@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, Grid, InputNumber, Modal, Select, Space, Switch, Table } from 'antd';
-import { CopyOutlined, DeleteOutlined, SaveOutlined } from '@ant-design/icons';
+import { CopyOutlined, SaveOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { message } from '@/utils/message';
 import * as adminApi from '@/api/admin';
+import * as remindApi from '@/api/remind';
 import { AssignRow, EvalPeriod, EvalType, EvalTypeLabel, Group, User } from '@/types';
 
 interface GroupConfigRow {
@@ -20,6 +21,17 @@ interface GlobalWeightConfig {
   deptWeight: number;
   peerWeight: number;
   linearWeight: number;
+}
+
+interface AssignMatrixRow {
+  key: string;
+  groupName: string;
+  groupLeaderScorers: string;
+  deptLeaderScorers: string;
+  peerEnabled: string;
+  weightSummary: string;
+  peerProgress: string;
+  totalProgress: string;
 }
 
 const ALL_EMPLOYEE_OPTION = '__ALL__';
@@ -43,6 +55,9 @@ const AssignConfig: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailGroupKey, setDetailGroupKey] = useState<string>();
+  const [remindLoadingKey, setRemindLoadingKey] = useState<string>();
 
   const [periods, setPeriods] = useState<EvalPeriod[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -169,13 +184,6 @@ const AssignConfig: React.FC = () => {
     }
     await adminApi.copyAssign({ sourcePeriodId: periods[idx - 1].id, targetPeriodId: currentPeriodId });
     message.success('复制成功');
-    await reloadAssigns(currentPeriodId);
-  };
-
-  const handleDelete = async (id?: number) => {
-    if (!id || !currentPeriodId) return;
-    await adminApi.deleteAssign(id);
-    message.success('删除成功');
     await reloadAssigns(currentPeriodId);
   };
 
@@ -375,6 +383,123 @@ const AssignConfig: React.FC = () => {
     },
   ];
 
+  const matrixRows = useMemo<AssignMatrixRow[]>(() => {
+    const userById: Record<number, User> = {};
+    users.forEach((u) => {
+      userById[u.id] = u;
+    });
+    const byGroup: Record<number, AssignRow[]> = {};
+    assignments.forEach((a) => {
+      const target = userById[a.targetId];
+      const groupId = target?.groupId ?? -1;
+      if (!byGroup[groupId]) byGroup[groupId] = [];
+      byGroup[groupId].push(a);
+    });
+
+    const joinNames = (rows: AssignRow[], evalType: EvalType) => {
+      const names = Array.from(
+        new Set(
+          rows
+            .filter((r) => r.evalType === evalType)
+            .map((r) => r.scorerName)
+            .filter((v): v is string => Boolean(v))
+        )
+      );
+      return names.length ? names.join(' / ') : '-';
+    };
+
+    const readWeight = (rows: AssignRow[], evalType: EvalType): number => {
+      const row = rows.find((r) => r.evalType === evalType && typeof r.weight === 'number');
+      return row ? Number(row.weight ?? 0) : 0;
+    };
+
+    return Object.keys(byGroup).map((groupIdStr) => {
+      const groupId = Number(groupIdStr);
+      const rows = byGroup[groupId];
+      const groupWeight = readWeight(rows, 'GROUP_LEADER');
+      const deptWeight = readWeight(rows, 'DEPT_LEADER');
+      const selfWeight = readWeight(rows, 'SELF');
+      const peerWeight = readWeight(rows, 'PEER');
+      const adminWeight = readWeight(rows, 'ADMIN');
+      const hasPeer = rows.some((r) => r.evalType === 'PEER');
+      const peerRows = rows.filter((r) => r.evalType === 'PEER');
+      const peerDone = peerRows.filter((r) => r.status === 1).length;
+      const done = rows.filter((r) => r.status === 1).length;
+      const firstTarget = rows.length ? userById[rows[0].targetId] : undefined;
+      const groupName = groups.find((g) => g.id === groupId)?.groupName || firstTarget?.groupName || '-';
+      return {
+        key: String(groupId),
+        groupName,
+        groupLeaderScorers: joinNames(rows, 'GROUP_LEADER'),
+        deptLeaderScorers: joinNames(rows, 'DEPT_LEADER'),
+        peerEnabled: hasPeer ? '是' : '否',
+        weightSummary: `组长${groupWeight}% / 部门${deptWeight}% / 自评${selfWeight}% / 互评${peerWeight}% / 管理员${adminWeight}%`,
+        peerProgress: `${peerDone}/${peerRows.length}`,
+        totalProgress: `${done}/${rows.length}`,
+      };
+    });
+  }, [assignments, users, groups]);
+
+  const matrixColumns = [
+    { title: '小组', dataIndex: 'groupName', key: 'groupName', width: 140 },
+    { title: '组长评分人', dataIndex: 'groupLeaderScorers', key: 'groupLeaderScorers', width: 240 },
+    { title: '部门评分人', dataIndex: 'deptLeaderScorers', key: 'deptLeaderScorers', width: 240 },
+    { title: '是否互评', dataIndex: 'peerEnabled', key: 'peerEnabled', width: 100 },
+    { title: '权重', dataIndex: 'weightSummary', key: 'weightSummary', width: 420 },
+    { title: '互评进度', dataIndex: 'peerProgress', key: 'peerProgress', width: 110 },
+    { title: '总评进度', dataIndex: 'totalProgress', key: 'totalProgress', width: 110 },
+    {
+      title: '操作',
+      key: 'action',
+      width: 110,
+      render: (_: unknown, row: AssignMatrixRow) => (
+        <Button
+          type="link"
+          onClick={() => {
+            setDetailGroupKey(row.key);
+            setDetailOpen(true);
+          }}
+        >
+          查看详情
+        </Button>
+      ),
+    },
+  ];
+
+  const detailRows = useMemo(() => {
+    if (!detailGroupKey) return [];
+    const groupId = Number(detailGroupKey);
+    const userById: Record<number, User> = {};
+    users.forEach((u) => {
+      userById[u.id] = u;
+    });
+    return assignments
+      .filter((a) => (userById[a.targetId]?.groupId ?? -1) === groupId)
+      .map((a, idx) => ({
+        key: `${a.id ?? 'x'}-${idx}`,
+        scorerId: a.scorerId,
+        scorerName: a.scorerName || `#${a.scorerId}`,
+        targetName: a.targetName || `#${a.targetId}`,
+        evalType: EvalTypeLabel[a.evalType] || a.evalType,
+        weight: typeof a.weight === 'number' ? `${a.weight}%` : '-',
+        status: a.status === 1 ? '已评分' : '待评分',
+      }));
+  }, [detailGroupKey, assignments, users]);
+
+  const handleRemindUser = async (scorerId: number, rowKey: string) => {
+    if (!currentPeriodId) {
+      message.warning('请先选择考核周期');
+      return;
+    }
+    setRemindLoadingKey(rowKey);
+    try {
+      await remindApi.sendUserRemind(currentPeriodId, scorerId);
+      message.success('已发送催促消息');
+    } finally {
+      setRemindLoadingKey(undefined);
+    }
+  };
+
   return (
     <Card
       title="评分分配"
@@ -411,28 +536,12 @@ const AssignConfig: React.FC = () => {
 
       <Table
         loading={loading}
-        dataSource={assignments}
-        rowKey="id"
+        dataSource={matrixRows}
+        rowKey="key"
         size="small"
         pagination={{ size: 'small' }}
-        columns={[
-          { title: '评分人', dataIndex: 'scorerName', key: 'scorerName' },
-          { title: '被评人', dataIndex: 'targetName', key: 'targetName' },
-          ...(!isMobile
-            ? [{ title: '评价类型', dataIndex: 'evalType', key: 'evalType', render: (t: EvalType) => EvalTypeLabel[t] || t }]
-            : []),
-          { title: '权重', dataIndex: 'weight', key: 'weight' },
-          { title: '状态', dataIndex: 'status', key: 'status', render: (s: number) => (s === 1 ? '已评分' : '待评分') },
-          {
-            title: '操作',
-            key: 'action',
-            render: (_: unknown, r: AssignRow) => (
-              <Button type="link" icon={<DeleteOutlined />} danger onClick={() => handleDelete(r.id)}>
-                删除
-              </Button>
-            ),
-          },
-        ]}
+        scroll={{ x: 1400 }}
+        columns={matrixColumns}
       />
 
       <Modal
@@ -444,7 +553,7 @@ const AssignConfig: React.FC = () => {
           if (ok) setConfigOpen(false);
         }}
         confirmLoading={saving}
-        width={1200}
+        width={1280}
       >
         <Card size="small" style={{ marginBottom: 12 }} title="统一权重配置（本期）">
           <Space wrap size="large">
@@ -495,6 +604,46 @@ const AssignConfig: React.FC = () => {
           message="按网格逐行配置：默认全部员工，可按需改为部分员工。"
         />
         <Table rowKey="groupId" dataSource={configRows} columns={configColumns} pagination={false} size="small" />
+
+      </Modal>
+
+      <Modal
+        title={`评分详情 - ${matrixRows.find((r) => r.key === detailGroupKey)?.groupName || '-'}`}
+        open={detailOpen}
+        onCancel={() => setDetailOpen(false)}
+        footer={null}
+        width={980}
+      >
+        <Table
+          rowKey="key"
+          dataSource={detailRows}
+          size="small"
+          pagination={{ size: 'small' }}
+          columns={[
+            { title: '评分人', dataIndex: 'scorerName', key: 'scorerName' },
+            { title: '被评分人', dataIndex: 'targetName', key: 'targetName' },
+            { title: '评价类型', dataIndex: 'evalType', key: 'evalType' },
+            { title: '权重', dataIndex: 'weight', key: 'weight', width: 100 },
+            { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
+            {
+              title: '操作',
+              key: 'action',
+              width: 100,
+              render: (_: unknown, row: { key: string; scorerId: number; status: string }) =>
+                row.status === '待评分' ? (
+                  <Button
+                    type="link"
+                    loading={remindLoadingKey === row.key}
+                    onClick={() => handleRemindUser(row.scorerId, row.key)}
+                  >
+                    催促
+                  </Button>
+                ) : (
+                  '-'
+                ),
+            },
+          ]}
+        />
       </Modal>
     </Card>
   );

@@ -3,6 +3,8 @@ package com.eval.module.score.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.eval.module.admin.entity.EvalScoreAssign;
 import com.eval.module.admin.mapper.EvalScoreAssignMapper;
+import com.eval.module.period.entity.EvalPeriod;
+import com.eval.module.period.service.PeriodService;
 import com.eval.module.score.entity.EvalDetail;
 import com.eval.module.score.entity.EvalRecord;
 import com.eval.module.score.mapper.EvalDetailMapper;
@@ -27,6 +29,7 @@ public class ScoreCalculateService {
     private final EvalDetailMapper evalDetailMapper;
     private final EvalRecordMapper evalRecordMapper;
     private final EvalScoreAssignMapper assignMapper;
+    private final PeriodService periodService;
     private final UserService userService;
 
     @Transactional
@@ -46,6 +49,39 @@ public class ScoreCalculateService {
 
         // Calculate department rankings
         calculateDeptRanks(periodId);
+        autoEndPeriodIfAllAssignmentsDone(periodId);
+    }
+
+    @Transactional
+    public boolean calculateTargetIfAllScored(Long periodId, Long targetId) {
+        List<EvalScoreAssign> assigns = assignMapper.selectList(
+                new LambdaQueryWrapper<EvalScoreAssign>()
+                        .eq(EvalScoreAssign::getPeriodId, periodId)
+                        .eq(EvalScoreAssign::getTargetId, targetId));
+        if (assigns == null || assigns.isEmpty()) {
+            return false;
+        }
+        boolean allScored = assigns.stream().allMatch(a -> a.getStatus() != null && a.getStatus() == 1);
+        if (!allScored) {
+            return false;
+        }
+        calculateForTarget(periodId, targetId);
+        autoEndPeriodIfAllAssignmentsDone(periodId);
+        return true;
+    }
+
+    private void autoEndPeriodIfAllAssignmentsDone(Long periodId) {
+        Long remaining = assignMapper.selectCount(new LambdaQueryWrapper<EvalScoreAssign>()
+                .eq(EvalScoreAssign::getPeriodId, periodId)
+                .eq(EvalScoreAssign::getStatus, 0));
+        if (remaining == null || remaining > 0) {
+            return;
+        }
+
+        EvalPeriod period = periodService.getById(periodId);
+        if (period != null && period.getStatus() != null && period.getStatus() == 1) {
+            periodService.endPeriod(periodId);
+        }
     }
 
     private void calculateForTarget(Long periodId, Long targetId) {

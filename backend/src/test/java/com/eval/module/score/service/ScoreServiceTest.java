@@ -1,0 +1,117 @@
+package com.eval.module.score.service;
+
+import com.eval.common.exception.BusinessException;
+import com.eval.module.admin.entity.EvalScoreAssign;
+import com.eval.module.admin.service.AssignService;
+import com.eval.module.score.dto.ScoreSubmitDTO;
+import com.eval.module.score.entity.EvalDetail;
+import com.eval.module.score.mapper.EvalDetailMapper;
+import com.eval.module.system.entity.SysDepartment;
+import com.eval.module.system.entity.SysGroup;
+import com.eval.module.system.entity.SysUser;
+import com.eval.module.system.service.DeptService;
+import com.eval.module.system.service.GroupService;
+import com.eval.module.system.service.UserService;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Collections;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+class ScoreServiceTest {
+
+    @AfterEach
+    void clearCtx() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void getPendingListBuildsViewData() {
+        EvalDetailMapper detailMapper = mock(EvalDetailMapper.class);
+        AssignService assignService = mock(AssignService.class);
+        UserService userService = mock(UserService.class);
+        DeptService deptService = mock(DeptService.class);
+        GroupService groupService = mock(GroupService.class);
+        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(1L, null, "ROLE_TEST"));
+
+        EvalScoreAssign a = new EvalScoreAssign();
+        a.setId(9L);
+        a.setTargetId(2L);
+        a.setEvalType("PEER");
+        a.setStatus(0);
+        when(assignService.listByScorerAndPeriod(1L, 8L)).thenReturn(Collections.singletonList(a));
+        SysUser target = new SysUser();
+        target.setId(2L);
+        target.setRealName("t");
+        target.setDeptId(11L);
+        target.setGroupId(12L);
+        when(userService.getById(2L)).thenReturn(target);
+        SysDepartment dept = new SysDepartment();
+        dept.setDeptName("d");
+        when(deptService.getById(11L)).thenReturn(dept);
+        SysGroup group = new SysGroup();
+        group.setGroupName("g");
+        when(groupService.getById(12L)).thenReturn(group);
+
+        ScoreService service = new ScoreService(detailMapper, assignService, userService, deptService, groupService);
+        assertEquals(1, service.getPendingList(8L).size());
+    }
+
+    @Test
+    void submitScoreThrowsWhenAssignMissing() {
+        ScoreService service = new ScoreService(mock(EvalDetailMapper.class), mock(AssignService.class),
+                mock(UserService.class), mock(DeptService.class), mock(GroupService.class));
+        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(1L, null, "ROLE_TEST"));
+        ScoreSubmitDTO dto = new ScoreSubmitDTO();
+        dto.setPeriodId(1L);
+        dto.setTargetId(2L);
+        dto.setEvalType("PEER");
+        assertThrows(BusinessException.class, () -> service.submitScore(dto));
+    }
+
+    @Test
+    void submitScoreUpdateAndInsertBranches() {
+        EvalDetailMapper detailMapper = mock(EvalDetailMapper.class);
+        AssignService assignService = mock(AssignService.class);
+        ScoreService service = spy(new ScoreService(detailMapper, assignService,
+                mock(UserService.class), mock(DeptService.class), mock(GroupService.class)));
+        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(1L, null, "ROLE_TEST"));
+
+        EvalScoreAssign assign = new EvalScoreAssign();
+        assign.setId(1L);
+        when(assignService.getOne(any())).thenReturn(assign);
+        ScoreSubmitDTO dto = new ScoreSubmitDTO();
+        dto.setPeriodId(1L);
+        dto.setTargetId(2L);
+        dto.setEvalType("PEER");
+        dto.setScore(BigDecimal.TEN);
+        dto.setComment("c");
+
+        EvalDetail existing = new EvalDetail();
+        existing.setId(3L);
+        when(detailMapper.selectOne(any())).thenReturn(existing);
+        service.submitScore(dto);
+        verify(detailMapper).updateById(existing);
+        verify(assignService).updateById(assign);
+
+        when(detailMapper.selectOne(any())).thenReturn(null);
+        service.submitScore(dto);
+        verify(detailMapper).insert(any(EvalDetail.class));
+    }
+
+    @Test
+    void batchSubmitDelegatesPerItem() {
+        ScoreService service = spy(new ScoreService(mock(EvalDetailMapper.class), mock(AssignService.class),
+                mock(UserService.class), mock(DeptService.class), mock(GroupService.class)));
+        doNothing().when(service).submitScore(any(ScoreSubmitDTO.class));
+        service.batchSubmitScores(Arrays.asList(new ScoreSubmitDTO(), new ScoreSubmitDTO()));
+        verify(service, times(2)).submitScore(any(ScoreSubmitDTO.class));
+    }
+}

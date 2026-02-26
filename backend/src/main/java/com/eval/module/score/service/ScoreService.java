@@ -28,6 +28,7 @@ public class ScoreService {
 
     private final EvalDetailMapper evalDetailMapper;
     private final AssignService assignService;
+    private final ScoreCalculateService scoreCalculateService;
     private final UserService userService;
     private final DeptService deptService;
     private final GroupService groupService;
@@ -105,6 +106,14 @@ public class ScoreService {
         // Mark assignment as scored
         assign.setStatus(1);
         assignService.updateById(assign);
+
+        // Auto-calculate and close period when all scoring tasks are completed.
+        Long remaining = assignService.count(new LambdaQueryWrapper<EvalScoreAssign>()
+                .eq(EvalScoreAssign::getPeriodId, dto.getPeriodId())
+                .eq(EvalScoreAssign::getStatus, 0));
+        if (remaining != null && remaining == 0) {
+            scoreCalculateService.calculateScores(dto.getPeriodId());
+        }
     }
 
     @Transactional

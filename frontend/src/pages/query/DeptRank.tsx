@@ -1,12 +1,15 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Table, Select, Tag, Spin, Space, Grid } from 'antd';
 import * as queryApi from '@/api/query';
 import * as adminApi from '@/api/admin';
+import * as scoreApi from '@/api/score';
+import { useAppSelector } from '@/store';
 import { Department, EvalPeriod, RankInfo } from '@/types';
 
 const DeptRank: React.FC = () => {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
+  const { user } = useAppSelector((state) => state.auth);
   const [loading, setLoading] = useState(false);
   const [periods, setPeriods] = useState<EvalPeriod[]>([]);
   const [depts, setDepts] = useState<Department[]>([]);
@@ -29,13 +32,17 @@ const DeptRank: React.FC = () => {
     (async () => {
       setLoading(true);
       try {
+        // Auto-calculate before ranking query so dept_rank/weighted_score are up-to-date.
+        if (user?.role === 'ADMIN') {
+          await scoreApi.calculateScores(currentPeriodId);
+        }
         const data = await queryApi.getDeptRank(currentPeriodId, currentDeptId);
         setRankList(data);
       } finally {
         setLoading(false);
       }
     })();
-  }, [currentPeriodId, currentDeptId]);
+  }, [currentPeriodId, currentDeptId, user?.role]);
 
   return (
     <Card

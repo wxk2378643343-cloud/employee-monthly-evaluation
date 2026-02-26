@@ -46,6 +46,10 @@ export function getGroupUsers(groupId: number): Promise<User[]> {
   return request.get(`/users/by-group/${groupId}`);
 }
 
+export function getDeptUsers(deptId: number): Promise<User[]> {
+  return request.get(`/users/by-dept/${deptId}`);
+}
+
 export function getRoleList(all = false): Promise<SystemRole[]> {
   return request.get(all ? '/roles/all' : '/roles');
 }

@@ -3,6 +3,7 @@ package com.eval.module.period.controller;
 import com.eval.common.result.Result;
 import com.eval.module.period.entity.EvalPeriod;
 import com.eval.module.period.service.PeriodService;
+import com.eval.module.remind.service.RemindService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,7 @@ import java.util.List;
 public class PeriodController {
 
     private final PeriodService periodService;
+    private final RemindService remindService;
 
     @GetMapping
     public Result<List<EvalPeriod>> listAll() {
@@ -45,6 +47,8 @@ public class PeriodController {
     @PreAuthorize("hasAuthority('period:manage')")
     public Result<Void> start(@PathVariable Long id) {
         periodService.startPeriod(id);
+        // Trigger initial reminders when a scoring period starts.
+        remindService.remindUnscored(id);
         return Result.success();
     }
 

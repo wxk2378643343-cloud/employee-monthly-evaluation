@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { Card, List, Tag, Avatar, Button, Empty, Spin, Pagination, Space, Grid } from 'antd';
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '@/store';
 import { markAllRead, fetchUnreadCount } from '@/store/remindSlice';
 import * as remindApi from '@/api/remind';
@@ -10,6 +11,7 @@ const RemindList: React.FC = () => {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [reminds, setReminds] = useState<Remind[]>([]);
   const [total, setTotal] = useState(0);
@@ -37,6 +39,18 @@ const RemindList: React.FC = () => {
     dispatch(fetchUnreadCount());
   };
 
+  const handleGoto = async (item: Remind) => {
+    if (!item.isRead) {
+      await remindApi.markRead(item.id);
+      dispatch(fetchUnreadCount());
+    }
+    if (item.remindType === 'VOTE') {
+      navigate(item.periodId ? `/vote/list?periodId=${item.periodId}` : '/vote/list');
+      return;
+    }
+    navigate(item.periodId ? `/score/pending?periodId=${item.periodId}` : '/score/pending');
+  };
+
   return (
     <Card
       title="消息中心"
@@ -52,11 +66,24 @@ const RemindList: React.FC = () => {
               renderItem={(item) => (
                 <List.Item
                   className={`${isMobile ? 'remind-list-mobile-item ' : ''}${!item.isRead ? 'remind-item--unread' : ''}`}
-                  actions={
-                    !item.isRead
-                      ? [<Button key="read" type="link" size={isMobile ? 'small' : 'middle'} icon={<CheckOutlined />} onClick={() => handleMarkRead(item.id)}>标记已读</Button>]
-                      : []
-                  }
+                  actions={[
+                    ...(!item.isRead
+                      ? [
+                          <Button
+                            key="read"
+                            type="link"
+                            size={isMobile ? 'small' : 'middle'}
+                            icon={<CheckOutlined />}
+                            onClick={() => handleMarkRead(item.id)}
+                          >
+                            标记已读
+                          </Button>,
+                        ]
+                      : []),
+                    <Button key="goto" type="link" size={isMobile ? 'small' : 'middle'} onClick={() => handleGoto(item)}>
+                      去处理
+                    </Button>,
+                  ]}
                 >
                   <List.Item.Meta
                     avatar={<Avatar icon={<BellOutlined />} />}

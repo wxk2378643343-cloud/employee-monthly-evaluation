@@ -17,6 +17,10 @@ export function markAllRead(): Promise<void> {
   return request.post('/reminds/read-all');
 }
 
+export function sendUserRemind(periodId: number, userId: number): Promise<void> {
+  return request.post(`/reminds/send/${periodId}/user/${userId}`);
+}
+
 export function getRemindList(params: { pageNum: number; pageSize: number; periodId?: number }): Promise<{
   total: number;
   list: Remind[];
