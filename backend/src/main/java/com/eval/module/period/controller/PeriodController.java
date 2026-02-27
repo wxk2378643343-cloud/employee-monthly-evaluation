@@ -32,14 +32,24 @@ public class PeriodController {
     @PreAuthorize("hasAuthority('period:manage')")
     public Result<Void> create(@RequestBody EvalPeriod period) {
         periodService.createPeriod(period);
+        if (period.getStatus() != null && period.getStatus() == 1 && period.getId() != null) {
+            remindService.remindUnscored(period.getId());
+        }
         return Result.success();
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('period:manage')")
     public Result<Void> update(@PathVariable Long id, @RequestBody EvalPeriod period) {
+        EvalPeriod before = periodService.getById(id);
         period.setId(id);
-        periodService.updateById(period);
+        periodService.updatePeriod(period);
+        boolean switchedToInProgress = period.getStatus() != null
+                && period.getStatus() == 1
+                && (before == null || before.getStatus() == null || before.getStatus() != 1);
+        if (switchedToInProgress) {
+            remindService.remindUnscored(id);
+        }
         return Result.success();
     }
 
@@ -56,6 +66,13 @@ public class PeriodController {
     @PreAuthorize("hasAuthority('period:manage')")
     public Result<Void> end(@PathVariable Long id) {
         periodService.endPeriod(id);
+        return Result.success();
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('period:manage')")
+    public Result<Void> delete(@PathVariable Long id) {
+        periodService.deletePeriod(id);
         return Result.success();
     }
 }

@@ -4,12 +4,16 @@ import com.eval.common.result.Result;
 import com.eval.module.admin.dto.AssignDTO;
 import com.eval.module.admin.dto.AssignGenerateResultVO;
 import com.eval.module.admin.dto.AssignGenerateRuleDTO;
+import com.eval.module.admin.dto.AssignGroupUpdateDTO;
 import com.eval.module.admin.dto.AssignVO;
 import com.eval.module.admin.dto.LinearScoreDTO;
 import com.eval.module.admin.dto.LinearScoreImportResultVO;
 import com.eval.module.admin.dto.LinearScoreVO;
 import com.eval.module.admin.service.AssignService;
 import com.eval.module.admin.service.LinearScoreService;
+import com.eval.module.period.entity.EvalPeriod;
+import com.eval.module.period.service.PeriodService;
+import com.eval.module.remind.service.RemindService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -28,6 +32,8 @@ public class AdminController {
 
     private final AssignService assignService;
     private final LinearScoreService linearScoreService;
+    private final PeriodService periodService;
+    private final RemindService remindService;
 
     // ---- Score Assignment ----
 
@@ -47,6 +53,7 @@ public class AdminController {
     @PreAuthorize("hasAuthority('assign:manage')")
     public Result<Void> saveAssign(@Valid @RequestBody AssignDTO dto) {
         assignService.saveAssign(dto);
+        triggerAutoRemindIfInProgress(dto.getPeriodId());
         return Result.success();
     }
 
@@ -54,6 +61,17 @@ public class AdminController {
     @PreAuthorize("hasAuthority('assign:manage')")
     public Result<Void> batchSaveAssigns(@RequestBody List<AssignDTO> dtos) {
         assignService.batchSaveAssigns(dtos);
+        if (dtos != null && !dtos.isEmpty()) {
+            triggerAutoRemindIfInProgress(dtos.get(0).getPeriodId());
+        }
+        return Result.success();
+    }
+
+    @PostMapping("/assigns/group-update")
+    @PreAuthorize("hasAuthority('assign:manage')")
+    public Result<Void> updateAssignsByGroup(@Valid @RequestBody AssignGroupUpdateDTO dto) {
+        assignService.updateAssignsByGroup(dto.getPeriodId(), dto.getGroupId(), dto.getAssignments());
+        triggerAutoRemindIfInProgress(dto.getPeriodId());
         return Result.success();
     }
 
@@ -61,6 +79,7 @@ public class AdminController {
     @PreAuthorize("hasAuthority('assign:manage')")
     public Result<Void> copyAssigns(@RequestParam Long sourcePeriodId, @RequestParam Long targetPeriodId) {
         assignService.copyAssignsFromPeriod(sourcePeriodId, targetPeriodId);
+        triggerAutoRemindIfInProgress(targetPeriodId);
         return Result.success();
     }
 
@@ -80,7 +99,20 @@ public class AdminController {
     @PostMapping("/assigns/generate")
     @PreAuthorize("hasAuthority('assign:manage')")
     public Result<AssignGenerateResultVO> generateAssigns(@Valid @RequestBody AssignGenerateRuleDTO dto) {
-        return Result.success(assignService.generateByRule(dto));
+        AssignGenerateResultVO result = assignService.generateByRule(dto);
+        triggerAutoRemindIfInProgress(dto.getPeriodId());
+        return Result.success(result);
+    }
+
+    private void triggerAutoRemindIfInProgress(Long periodId) {
+        if (periodId == null) {
+            return;
+        }
+        EvalPeriod period = periodService.getById(periodId);
+        if (period == null || period.getStatus() == null || period.getStatus() != 1) {
+            return;
+        }
+        remindService.remindUnscored(periodId);
     }
 
     // ---- Linear Score ----

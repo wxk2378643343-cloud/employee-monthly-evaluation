@@ -63,4 +63,10 @@ public class RemindController {
         remindService.markAllReadForCurrentUser();
         return Result.success();
     }
+
+    @PostMapping("/{id}/unread")
+    public Result<Void> markUnread(@PathVariable Long id) {
+        remindService.markUnreadForCurrentUser(id);
+        return Result.success();
+    }
 }

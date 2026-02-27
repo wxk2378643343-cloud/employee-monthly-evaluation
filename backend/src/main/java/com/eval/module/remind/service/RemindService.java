@@ -45,7 +45,7 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
                 .collect(Collectors.toSet());
 
         EvalPeriod period = periodService.getById(periodId);
-        String periodName = period != null ? period.getPeriodName() : "Current period";
+        String periodName = period != null ? period.getPeriodName() : "当前周期";
 
         for (Long userId : unscoredUserIds) {
             sendScoreRemind(periodId, periodName, userId);
@@ -58,10 +58,10 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
                 .eq(EvalScoreAssign::getScorerId, userId)
                 .eq(EvalScoreAssign::getStatus, 0));
         if (pendingCount == null || pendingCount <= 0) {
-            throw new BusinessException(400, "This user has no pending evaluation tasks");
+            throw new BusinessException(400, "该用户当前没有待评分任务");
         }
         EvalPeriod period = periodService.getById(periodId);
-        String periodName = period != null ? period.getPeriodName() : "Current period";
+        String periodName = period != null ? period.getPeriodName() : "当前周期";
         sendScoreRemind(periodId, periodName, userId);
     }
 
@@ -95,7 +95,7 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
         Long currentUserId = SecurityUtils.getCurrentUserId();
         RemindRecord record = getById(remindId);
         if (record == null || !currentUserId.equals(record.getUserId())) {
-            throw new BusinessException(404, "Reminder not found");
+            throw new BusinessException(404, "提醒记录不存在");
         }
         readIndex.computeIfAbsent(currentUserId, k -> ConcurrentHashMap.newKeySet()).add(remindId);
     }
@@ -106,6 +106,16 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
                 .eq(RemindRecord::getUserId, currentUserId));
         Set<Long> readSet = readIndex.computeIfAbsent(currentUserId, k -> ConcurrentHashMap.newKeySet());
         records.forEach(r -> readSet.add(r.getId()));
+    }
+
+    public void markUnreadForCurrentUser(Long remindId) {
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        RemindRecord record = getById(remindId);
+        if (record == null || !currentUserId.equals(record.getUserId())) {
+            throw new BusinessException(404, "提醒记录不存在");
+        }
+        Set<Long> readSet = readIndex.computeIfAbsent(currentUserId, k -> ConcurrentHashMap.newKeySet());
+        readSet.remove(remindId);
     }
 
     private List<Map<String, Object>> toView(List<RemindRecord> records, Long userId) {
@@ -135,10 +145,10 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
     }
 
     private String buildContent(RemindRecord record) {
-        String typeLabel = "SCORE".equals(record.getRemindType()) ? "Score task" : "Vote task";
+        String typeLabel = "SCORE".equals(record.getRemindType()) ? "评分任务" : "投票任务";
         EvalPeriod period = periodService.getById(record.getPeriodId());
-        String periodName = period != null ? period.getPeriodName() : "Current period";
-        return String.format("%s reminder for %s", typeLabel, periodName);
+        String periodName = period != null ? period.getPeriodName() : "当前周期";
+        return String.format("[%s] %s提醒，请及时处理。", periodName, typeLabel);
     }
 
     private void sendScoreRemind(Long periodId, String periodName, Long userId) {
@@ -146,7 +156,7 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
         if (user == null) {
             return;
         }
-        String content = String.format("[%s] You still have pending evaluation tasks.", periodName);
+        String content = String.format("[%s] 你还有待完成的评分任务，请及时处理。", periodName);
         boolean sent = dingTalkService.sendTextMessage(String.format("%s %s", user.getRealName(), content));
 
         RemindRecord record = new RemindRecord();

@@ -12,6 +12,7 @@ import com.eval.module.admin.mapper.EvalScoreAssignMapper;
 import com.eval.module.system.entity.SysUser;
 import com.eval.module.system.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -103,7 +104,21 @@ public class AssignService extends ServiceImpl<EvalScoreAssignMapper, EvalScoreA
             assign.setEvalType(dto.getEvalType());
             assign.setWeight(dto.getWeight());
             assign.setStatus(0);
-            save(assign);
+            try {
+                save(assign);
+            } catch (DuplicateKeyException e) {
+                int updated = baseMapper.reviveDeletedAssign(
+                        dto.getPeriodId(),
+                        dto.getScorerId(),
+                        dto.getTargetId(),
+                        dto.getEvalType(),
+                        defaultWeight(dto.getWeight()),
+                        0
+                );
+                if (updated <= 0) {
+                    throw e;
+                }
+            }
         }
     }
 
@@ -124,8 +139,7 @@ public class AssignService extends ServiceImpl<EvalScoreAssignMapper, EvalScoreA
         }
 
         // Remove existing assigns for target period
-        remove(new LambdaQueryWrapper<EvalScoreAssign>()
-                .eq(EvalScoreAssign::getPeriodId, targetPeriodId));
+        baseMapper.hardDeleteByPeriod(targetPeriodId);
 
         List<EvalScoreAssign> newAssigns = new ArrayList<>();
         for (EvalScoreAssign source : sourceAssigns) {
@@ -154,9 +168,77 @@ public class AssignService extends ServiceImpl<EvalScoreAssignMapper, EvalScoreA
         }
         int count = Math.toIntExact(count(new LambdaQueryWrapper<EvalScoreAssign>()
                 .eq(EvalScoreAssign::getPeriodId, periodId)));
-        remove(new LambdaQueryWrapper<EvalScoreAssign>()
-                .eq(EvalScoreAssign::getPeriodId, periodId));
+        baseMapper.hardDeleteByPeriod(periodId);
         return count;
+    }
+
+    @Transactional
+    public void updateAssignsByGroup(Long periodId, Long groupId, List<AssignDTO> dtos) {
+        if (periodId == null || groupId == null) {
+            throw new BusinessException("periodId and groupId are required");
+        }
+
+        List<EvalScoreAssign> periodAssigns = list(new LambdaQueryWrapper<EvalScoreAssign>()
+                .eq(EvalScoreAssign::getPeriodId, periodId));
+        Set<Long> targetIds = periodAssigns.stream()
+                .map(EvalScoreAssign::getTargetId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, SysUser> userById = userService.listByIds(targetIds).stream()
+                .collect(Collectors.toMap(SysUser::getId, u -> u, (a, b) -> a));
+        Set<Long> groupTargetIds = periodAssigns.stream()
+                .map(EvalScoreAssign::getTargetId)
+                .filter(java.util.Objects::nonNull)
+                .filter(targetId -> {
+                    SysUser target = userById.get(targetId);
+                    return target != null && groupId.equals(target.getGroupId());
+                })
+                .collect(Collectors.toSet());
+        List<Long> currentGroupEmployeeIds = userService.list(new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getGroupId, groupId)
+                        .eq(SysUser::getRole, "EMPLOYEE"))
+                .stream()
+                .map(SysUser::getId)
+                .collect(Collectors.toList());
+        groupTargetIds.addAll(currentGroupEmployeeIds);
+
+        Map<String, Integer> statusByKey = new java.util.HashMap<>();
+        if (!groupTargetIds.isEmpty()) {
+            List<EvalScoreAssign> existingGroupAssigns = list(new LambdaQueryWrapper<EvalScoreAssign>()
+                    .eq(EvalScoreAssign::getPeriodId, periodId)
+                    .in(EvalScoreAssign::getTargetId, groupTargetIds));
+            for (EvalScoreAssign assign : existingGroupAssigns) {
+                statusByKey.put(buildKey(assign.getScorerId(), assign.getTargetId(), assign.getEvalType()), assign.getStatus());
+            }
+            baseMapper.hardDeleteByPeriodAndTargetIds(periodId, groupTargetIds);
+        }
+
+        List<EvalScoreAssign> newAssigns = new ArrayList<>();
+        Set<String> uniq = new HashSet<>();
+        for (AssignDTO dto : (dtos == null ? new ArrayList<AssignDTO>() : dtos)) {
+            if (dto == null || dto.getScorerId() == null || dto.getTargetId() == null || dto.getEvalType() == null) {
+                continue;
+            }
+            if (!groupTargetIds.contains(dto.getTargetId())) {
+                continue;
+            }
+            String key = buildKey(dto.getScorerId(), dto.getTargetId(), dto.getEvalType());
+            if (!uniq.add(key)) {
+                continue;
+            }
+            EvalScoreAssign assign = new EvalScoreAssign();
+            assign.setPeriodId(periodId);
+            assign.setScorerId(dto.getScorerId());
+            assign.setTargetId(dto.getTargetId());
+            assign.setEvalType(dto.getEvalType());
+            assign.setWeight(defaultWeight(dto.getWeight()));
+            assign.setStatus(statusByKey.getOrDefault(key, 0));
+            newAssigns.add(assign);
+        }
+
+        if (!newAssigns.isEmpty()) {
+            saveBatch(newAssigns);
+        }
     }
 
     @Transactional
@@ -180,8 +262,7 @@ public class AssignService extends ServiceImpl<EvalScoreAssignMapper, EvalScoreA
             List<EvalScoreAssign> existing = list(new LambdaQueryWrapper<EvalScoreAssign>()
                     .eq(EvalScoreAssign::getPeriodId, periodId));
             deletedCount = existing.size();
-            remove(new LambdaQueryWrapper<EvalScoreAssign>()
-                    .eq(EvalScoreAssign::getPeriodId, periodId));
+            baseMapper.hardDeleteByPeriod(periodId);
         }
 
         List<SysUser> users = userService.list(new LambdaQueryWrapper<SysUser>()

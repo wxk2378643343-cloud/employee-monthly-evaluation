@@ -424,6 +424,49 @@ body {
   }
 }
 
+.remind-center-card {
+  border-radius: 12px;
+}
+
+.remind-center-card .ant-card-head {
+  border-bottom: 1px solid #f2d7d5;
+}
+
+.remind-center-list .ant-list-item {
+  padding: 14px 12px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #f5e5e5;
+  background: #fff;
+}
+
+.remind-center-item.remind-item--unread::before {
+  display: none !important;
+}
+
+.remind-center-item:hover {
+  background: #fff8f7;
+}
+
+.remind-center-item__desc .remind-content {
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.remind-center-pager {
+  margin-top: 16px;
+  text-align: right;
+}
+
+.remind-center-pager--mobile {
+  text-align: center;
+}
+
+.remind-center-read-all-btn.ant-btn:not(:disabled),
+.remind-center-read-all-btn.ant-btn:not(.ant-btn-disabled) {
+  color: #fff !important;
+}
+
 // ========== 投票信息 ==========
 .vote-info {
   margin-bottom: 16px;
@@ -1442,4 +1485,20 @@ body {
 
 .app-content__inner {
   min-height: min-content;
+}
+
+.assign-config-add-btn.ant-btn-primary:disabled,
+.assign-config-add-btn.ant-btn-primary.ant-btn-disabled {
+  background: #fff1f0 !important;
+  border-color: #ffccc7 !important;
+  color: #cf1322 !important;
+  opacity: 0.6;
+}
+
+.remind-center-read-all-btn.ant-btn-primary:disabled,
+.remind-center-read-all-btn.ant-btn-primary.ant-btn-disabled {
+  background: #fff1f0 !important;
+  border-color: #ffccc7 !important;
+  color: #cf1322 !important;
+  opacity: 0.65;
 }

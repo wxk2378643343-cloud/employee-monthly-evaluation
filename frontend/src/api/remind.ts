@@ -13,12 +13,20 @@ export function markRead(id: number): Promise<void> {
   return request.post(`/reminds/${id}/read`);
 }
 
+export function markUnread(id: number): Promise<void> {
+  return request.post(`/reminds/${id}/unread`);
+}
+
 export function markAllRead(): Promise<void> {
   return request.post('/reminds/read-all');
 }
 
 export function sendUserRemind(periodId: number, userId: number): Promise<void> {
   return request.post(`/reminds/send/${periodId}/user/${userId}`);
+}
+
+export function sendPeriodRemind(periodId: number): Promise<void> {
+  return request.post(`/reminds/send/${periodId}`);
 }
 
 export function getRemindList(params: { pageNum: number; pageSize: number; periodId?: number }): Promise<{

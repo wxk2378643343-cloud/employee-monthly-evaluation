@@ -115,6 +115,20 @@ export function saveAssign(data: { periodId: number; assignments: AssignRow[] })
   );
 }
 
+export function updateAssignByGroup(data: { periodId: number; groupId: number; assignments: AssignRow[] }): Promise<void> {
+  return request.post('/admin/assigns/group-update', {
+    periodId: data.periodId,
+    groupId: data.groupId,
+    assignments: data.assignments.map((a) => ({
+      periodId: data.periodId,
+      scorerId: a.scorerId,
+      targetId: a.targetId,
+      evalType: a.evalType,
+      weight: a.weight ?? 0,
+    })),
+  });
+}
+
 export function deleteAssign(id: number): Promise<void> {
   return request.delete(`/admin/assigns/${id}`);
 }
@@ -189,6 +203,10 @@ export function getPeriodList(): Promise<EvalPeriod[]> {
 export function savePeriod(data: Partial<EvalPeriod>): Promise<void> {
   if (data.id) return request.put(`/periods/${data.id}`, data);
   return request.post('/periods', data);
+}
+
+export function deletePeriod(id: number): Promise<void> {
+  return request.delete(`/periods/${id}`);
 }
 
 export function updatePeriodStatus(id: number, status: PeriodStatus): Promise<void> {

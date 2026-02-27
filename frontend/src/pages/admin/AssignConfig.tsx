@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Grid, InputNumber, Modal, Select, Space, Switch, Table } from 'antd';
-import { CopyOutlined, SaveOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Grid, InputNumber, Modal, Select, Space, Switch, Table, Tooltip } from 'antd';
+import { SaveOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { message } from '@/utils/message';
 import * as adminApi from '@/api/admin';
@@ -38,8 +38,8 @@ const ALL_EMPLOYEE_OPTION = '__ALL__';
 const DEFAULT_WEIGHTS: GlobalWeightConfig = {
   groupWeight: 30,
   deptWeight: 30,
-  peerWeight: 40,
-  linearWeight: 0,
+  peerWeight: 30,
+  linearWeight: 10,
 };
 
 const readTypeWeight = (assigns: AssignRow[], evalType: EvalType): number | undefined => {
@@ -57,6 +57,7 @@ const AssignConfig: React.FC = () => {
   const [configOpen, setConfigOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailGroupKey, setDetailGroupKey] = useState<string>();
+  const [editGroupId, setEditGroupId] = useState<number>();
   const [remindLoadingKey, setRemindLoadingKey] = useState<string>();
 
   const [periods, setPeriods] = useState<EvalPeriod[]>([]);
@@ -67,9 +68,9 @@ const AssignConfig: React.FC = () => {
   const [configRows, setConfigRows] = useState<GroupConfigRow[]>([]);
 
   const [globalWeights, setGlobalWeights] = useState<GlobalWeightConfig>(DEFAULT_WEIGHTS);
-  const [historyPeriodId, setHistoryPeriodId] = useState<number>();
-  const [historyWeights, setHistoryWeights] = useState<GlobalWeightConfig>();
-  const [historyLoading, setHistoryLoading] = useState(false);
+  const [copyPeriodId, setCopyPeriodId] = useState<number>();
+  const [copyLoading, setCopyLoading] = useState(false);
+  const [lastCopiedPeriodName, setLastCopiedPeriodName] = useState<string>();
 
   useEffect(() => {
     (async () => {
@@ -149,9 +150,15 @@ const AssignConfig: React.FC = () => {
 
   useEffect(() => {
     reloadAssigns(currentPeriodId);
-    setHistoryWeights(undefined);
-    setHistoryPeriodId(undefined);
-  }, [currentPeriodId]);
+    if (!currentPeriodId) {
+      setCopyPeriodId(undefined);
+      setLastCopiedPeriodName(undefined);
+      return;
+    }
+    const idx = periods.findIndex((p) => p.id === currentPeriodId);
+    setCopyPeriodId(idx > 0 ? periods[idx - 1].id : undefined);
+    setLastCopiedPeriodName(undefined);
+  }, [currentPeriodId, periods]);
 
   const updateRow = (groupId: number, patch: Partial<GroupConfigRow>) => {
     setConfigRows((prev) => prev.map((r) => (r.groupId === groupId ? { ...r, ...patch } : r)));
@@ -175,44 +182,95 @@ const AssignConfig: React.FC = () => {
     updateRow(groupId, { targetEmployeeIds: selectedIds });
   };
 
-  const handleCopy = async () => {
-    if (!currentPeriodId) return;
-    const idx = periods.findIndex((p) => p.id === currentPeriodId);
-    if (idx <= 0) {
-      message.warning('没有可复制的上期配置');
-      return;
-    }
-    await adminApi.copyAssign({ sourcePeriodId: periods[idx - 1].id, targetPeriodId: currentPeriodId });
-    message.success('复制成功');
-    await reloadAssigns(currentPeriodId);
-  };
-
-  const handleViewHistoryCriteria = async () => {
-    if (!historyPeriodId) {
+  const handleCopyGridConfigToTable = async () => {
+    if (!copyPeriodId) {
       message.warning('请先选择历史周期');
       return;
     }
-    setHistoryLoading(true);
+
+    setCopyLoading(true);
     try {
-      const list = await adminApi.getAssignList(historyPeriodId);
-      setHistoryWeights({
-        groupWeight: readTypeWeight(list, 'GROUP_LEADER') ?? DEFAULT_WEIGHTS.groupWeight,
-        deptWeight: readTypeWeight(list, 'DEPT_LEADER') ?? DEFAULT_WEIGHTS.deptWeight,
-        peerWeight: readTypeWeight(list, 'PEER') ?? DEFAULT_WEIGHTS.peerWeight,
-        linearWeight: globalWeights.linearWeight,
+      const list = await adminApi.getAssignList(copyPeriodId);
+      if (!list.length) {
+        message.warning('历史周期暂无分配配置');
+        return;
+      }
+
+      const userById: Record<number, User> = {};
+      users.forEach((u) => {
+        userById[u.id] = u;
       });
+      const validUserIdSet = new Set(users.map((u) => u.id));
+
+      setConfigRows((prev) =>
+        prev.map((row) => {
+          const groupMemberIds = (employeesByGroup[row.groupId] || []).map((u) => u.id);
+          const groupRows = list.filter((a) => (userById[a.targetId]?.groupId ?? -1) === row.groupId);
+          if (!groupRows.length) return row;
+
+          const targetEmployeeIds = Array.from(new Set(groupRows.map((r) => r.targetId))).filter((id) => groupMemberIds.includes(id));
+          const groupLeaderIds = Array.from(
+            new Set(groupRows.filter((r) => r.evalType === 'GROUP_LEADER').map((r) => r.scorerId))
+          ).filter((id) => validUserIdSet.has(id));
+          const deptLeaderIds = Array.from(
+            new Set(groupRows.filter((r) => r.evalType === 'DEPT_LEADER').map((r) => r.scorerId))
+          ).filter((id) => validUserIdSet.has(id));
+          const enablePeer = groupRows.some((r) => r.evalType === 'PEER');
+
+          return {
+            ...row,
+            targetEmployeeIds: targetEmployeeIds.length ? targetEmployeeIds : groupMemberIds,
+            groupLeaderIds,
+            deptLeaderIds,
+            enablePeer,
+          };
+        })
+      );
+      const sourcePeriodName = periods.find((p) => p.id === copyPeriodId)?.periodName || `#${copyPeriodId}`;
+      setLastCopiedPeriodName(sourcePeriodName);
+      message.success('已将历史网格配置覆盖到下方表格，请确认后保存');
     } finally {
-      setHistoryLoading(false);
+      setCopyLoading(false);
     }
   };
 
-  const handleApplyHistoryCriteria = () => {
-    if (!historyWeights) {
-      message.warning('请先查看历史评分准则');
-      return;
-    }
-    setGlobalWeights((prev) => ({ ...prev, ...historyWeights, linearWeight: prev.linearWeight }));
-    message.success('已应用历史评分准则到本期');
+  const fillConfigRowsFromAssignList = (list: AssignRow[]) => {
+    const userById: Record<number, User> = {};
+    users.forEach((u) => {
+      userById[u.id] = u;
+    });
+    const validUserIdSet = new Set(users.map((u) => u.id));
+
+    setConfigRows((prev) =>
+      prev.map((row) => {
+        const groupMemberIds = (employeesByGroup[row.groupId] || []).map((u) => u.id);
+        const groupRows = list.filter((a) => (userById[a.targetId]?.groupId ?? -1) === row.groupId);
+        if (!groupRows.length) return row;
+
+        const targetEmployeeIds = Array.from(new Set(groupRows.map((r) => r.targetId))).filter((id) => groupMemberIds.includes(id));
+        const groupLeaderIds = Array.from(
+          new Set(groupRows.filter((r) => r.evalType === 'GROUP_LEADER').map((r) => r.scorerId))
+        ).filter((id) => validUserIdSet.has(id));
+        const deptLeaderIds = Array.from(
+          new Set(groupRows.filter((r) => r.evalType === 'DEPT_LEADER').map((r) => r.scorerId))
+        ).filter((id) => validUserIdSet.has(id));
+        const enablePeer = groupRows.some((r) => r.evalType === 'PEER');
+
+        return {
+          ...row,
+          targetEmployeeIds: targetEmployeeIds.length ? targetEmployeeIds : groupMemberIds,
+          groupLeaderIds,
+          deptLeaderIds,
+          enablePeer,
+        };
+      })
+    );
+  };
+
+  const openEditConfigModal = (groupId?: number) => {
+    fillConfigRowsFromAssignList(assignments);
+    setEditGroupId(groupId);
+    setConfigOpen(true);
   };
 
   const onSaveConfig = async (): Promise<boolean> => {
@@ -238,7 +296,8 @@ const AssignConfig: React.FC = () => {
       rows.push(row);
     };
 
-    configRows.forEach((cfg) => {
+    const rowsToBuild = editGroupId ? configRows.filter((cfg) => cfg.groupId === editGroupId) : configRows;
+    rowsToBuild.forEach((cfg) => {
       const allEmployees = employeesByGroup[cfg.groupId] || [];
       const targets = cfg.targetEmployeeIds.length
         ? allEmployees.filter((u) => cfg.targetEmployeeIds.includes(u.id))
@@ -290,7 +349,7 @@ const AssignConfig: React.FC = () => {
       }
     });
 
-    if (!rows.length) {
+    if (!rows.length && !editGroupId) {
       if (peerNeedMoreEmployeesGroups.length) {
         message.warning(`以下小组开启了员工互评，但员工人数不足2人：${peerNeedMoreEmployeesGroups.join('、')}`);
         return false;
@@ -301,9 +360,14 @@ const AssignConfig: React.FC = () => {
 
     setSaving(true);
     try {
-      await adminApi.clearAssignByPeriod(currentPeriodId);
-      await adminApi.saveAssign({ periodId: currentPeriodId, assignments: rows });
-      message.success(`保存成功，新增/更新 ${rows.length} 条`);
+      if (editGroupId) {
+        await adminApi.updateAssignByGroup({ periodId: currentPeriodId, groupId: editGroupId, assignments: rows });
+        message.success(`保存成功，已更新当前小组 ${rows.length} 条`);
+      } else {
+        await adminApi.clearAssignByPeriod(currentPeriodId);
+        await adminApi.saveAssign({ periodId: currentPeriodId, assignments: rows });
+        message.success(`保存成功，新增/更新 ${rows.length} 条`);
+      }
       await reloadAssigns(currentPeriodId);
       return true;
     } catch {
@@ -418,9 +482,7 @@ const AssignConfig: React.FC = () => {
       const rows = byGroup[groupId];
       const groupWeight = readWeight(rows, 'GROUP_LEADER');
       const deptWeight = readWeight(rows, 'DEPT_LEADER');
-      const selfWeight = readWeight(rows, 'SELF');
       const peerWeight = readWeight(rows, 'PEER');
-      const adminWeight = readWeight(rows, 'ADMIN');
       const hasPeer = rows.some((r) => r.evalType === 'PEER');
       const peerRows = rows.filter((r) => r.evalType === 'PEER');
       const peerDone = peerRows.filter((r) => r.status === 1).length;
@@ -433,12 +495,12 @@ const AssignConfig: React.FC = () => {
         groupLeaderScorers: joinNames(rows, 'GROUP_LEADER'),
         deptLeaderScorers: joinNames(rows, 'DEPT_LEADER'),
         peerEnabled: hasPeer ? '是' : '否',
-        weightSummary: `组长${groupWeight}% / 部门${deptWeight}% / 自评${selfWeight}% / 互评${peerWeight}% / 管理员${adminWeight}%`,
+        weightSummary: `组长${groupWeight}% / 部门${deptWeight}% / 互评${peerWeight}% / 线性${globalWeights.linearWeight}%`,
         peerProgress: `${peerDone}/${peerRows.length}`,
         totalProgress: `${done}/${rows.length}`,
       };
     });
-  }, [assignments, users, groups]);
+  }, [assignments, users, groups, globalWeights.linearWeight]);
 
   const matrixColumns = [
     { title: '小组', dataIndex: 'groupName', key: 'groupName', width: 140 },
@@ -451,20 +513,26 @@ const AssignConfig: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 110,
+      width: 180,
       render: (_: unknown, row: AssignMatrixRow) => (
-        <Button
-          type="link"
-          onClick={() => {
-            setDetailGroupKey(row.key);
-            setDetailOpen(true);
-          }}
-        >
-          查看详情
-        </Button>
+        <Space size={4}>
+          <Button
+            type="link"
+            onClick={() => {
+              setDetailGroupKey(row.key);
+              setDetailOpen(true);
+            }}
+          >
+            查看详情
+          </Button>
+          <Button type="link" onClick={() => openEditConfigModal(Number(row.key))}>
+            修改
+          </Button>
+        </Space>
       ),
     },
   ];
+  const hasCurrentPeriodConfig = assignments.length > 0;
 
   const detailRows = useMemo(() => {
     if (!detailGroupKey) return [];
@@ -512,8 +580,22 @@ const AssignConfig: React.FC = () => {
               </Select.Option>
             ))}
           </Select>
-          <Button icon={<CopyOutlined />} onClick={handleCopy}>复制上期</Button>
-          <Button type="primary" icon={<SaveOutlined />} onClick={() => setConfigOpen(true)}>新增配置</Button>
+          <Tooltip title={hasCurrentPeriodConfig ? '当前周期已存在配置，只能修改（请使用操作列“修改”）' : ''}>
+            <span style={{ display: 'inline-block' }}>
+              <Button
+                className="assign-config-add-btn"
+                type="primary"
+                icon={<SaveOutlined />}
+                disabled={hasCurrentPeriodConfig}
+                onClick={() => {
+                  setEditGroupId(undefined);
+                  setConfigOpen(true);
+                }}
+              >
+                新增配置
+              </Button>
+            </span>
+          </Tooltip>
         </Space>
       }
     >
@@ -545,12 +627,18 @@ const AssignConfig: React.FC = () => {
       />
 
       <Modal
-        title="新增配置（按网格）"
+        title={editGroupId ? `修改配置（${groups.find((g) => g.id === editGroupId)?.groupName || '-' }）` : '新增配置（按网格）'}
         open={configOpen}
-        onCancel={() => setConfigOpen(false)}
+        onCancel={() => {
+          setConfigOpen(false);
+          setEditGroupId(undefined);
+        }}
         onOk={async () => {
           const ok = await onSaveConfig();
-          if (ok) setConfigOpen(false);
+          if (ok) {
+            setConfigOpen(false);
+            setEditGroupId(undefined);
+          }
         }}
         confirmLoading={saving}
         width={1280}
@@ -576,34 +664,43 @@ const AssignConfig: React.FC = () => {
             <span>合计：{globalWeights.groupWeight + globalWeights.deptWeight + globalWeights.peerWeight + globalWeights.linearWeight}%</span>
           </Space>
 
-          <Space wrap style={{ marginTop: 12 }}>
+        </Card>
+
+        <Card size="small" style={{ marginBottom: 12 }} title="历史网格配置复制">
+          <Space wrap>
             <Select
               allowClear
-              placeholder="选择历史周期查看评分准则"
-              value={historyPeriodId}
-              onChange={setHistoryPeriodId}
-              style={{ width: 240 }}
+              placeholder="选择历史周期"
+              value={copyPeriodId}
+              onChange={setCopyPeriodId}
+              style={{ width: 260 }}
               options={periods
                 .filter((p) => p.id !== currentPeriodId)
                 .map((p) => ({ value: p.id, label: p.periodName }))}
             />
-            <Button loading={historyLoading} onClick={handleViewHistoryCriteria}>查看历史准则</Button>
-            <Button disabled={!historyWeights} onClick={handleApplyHistoryCriteria}>应用到本期</Button>
-            {historyWeights && (
-              <span>
-                历史准则：网格{historyWeights.groupWeight}% / 部门{historyWeights.deptWeight}% / 互评{historyWeights.peerWeight}%
-              </span>
-            )}
+            <Button loading={copyLoading} onClick={handleCopyGridConfigToTable}>复制并覆盖下方表格</Button>
           </Space>
+          <div style={{ marginTop: 8, color: 'rgba(0,0,0,0.65)' }}>
+            默认会选中上一期；点击“复制并覆盖下方表格”后，需点弹窗右下角“确定”才会最终生效。
+          </div>
+          <div style={{ marginTop: 4, color: 'rgba(0,0,0,0.65)' }}>
+            {lastCopiedPeriodName ? `本次已复制来源：${lastCopiedPeriodName}` : '本次尚未执行复制'}
+          </div>
         </Card>
 
         <Alert
           type="info"
           showIcon
           style={{ marginBottom: 12 }}
-          message="按网格逐行配置：默认全部员工，可按需改为部分员工。"
+          message={editGroupId ? '当前为按小组修改；保存时仅更新当前小组分配配置。' : '按网格逐行配置：默认全部员工，可按需改为部分员工。'}
         />
-        <Table rowKey="groupId" dataSource={configRows} columns={configColumns} pagination={false} size="small" />
+        <Table
+          rowKey="groupId"
+          dataSource={editGroupId ? configRows.filter((r) => r.groupId === editGroupId) : configRows}
+          columns={configColumns}
+          pagination={false}
+          size="small"
+        />
 
       </Modal>
 
