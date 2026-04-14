@@ -8,6 +8,7 @@ import com.eval.module.admin.entity.EvalScoreAssign;
 import com.eval.module.admin.mapper.EvalScoreAssignMapper;
 import com.eval.module.period.entity.EvalPeriod;
 import com.eval.module.period.service.PeriodService;
+import com.eval.module.remind.dto.PublishMessageDTO;
 import com.eval.module.remind.entity.RemindRecord;
 import com.eval.module.remind.mapper.RemindRecordMapper;
 import com.eval.module.system.entity.SysUser;
@@ -63,6 +64,41 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
         EvalPeriod period = periodService.getById(periodId);
         String periodName = period != null ? period.getPeriodName() : "当前周期";
         sendScoreRemind(periodId, periodName, userId);
+    }
+
+    public void publishMessage(PublishMessageDTO dto) {
+        String content = dto.getContent() == null ? "" : dto.getContent().trim();
+        if (content.isEmpty()) {
+            throw new BusinessException(400, "消息内容不能为空");
+        }
+
+        List<Long> userIds = dto.getUserIds() == null ? Collections.emptyList() : dto.getUserIds();
+        if (userIds.isEmpty()) {
+            throw new BusinessException(400, "接收人不能为空");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        List<RemindRecord> records = new ArrayList<>();
+        for (Long userId : new LinkedHashSet<>(userIds)) {
+            SysUser user = userService.getById(userId);
+            if (user == null || user.getStatus() == null || user.getStatus() != 1) {
+                continue;
+            }
+            RemindRecord record = new RemindRecord();
+            record.setPeriodId(dto.getPeriodId());
+            record.setUserId(userId);
+            record.setRemindType("NOTICE");
+            record.setRemindWay("SYSTEM");
+            record.setSendStatus(1);
+            record.setContent(content);
+            record.setSendTime(now);
+            records.add(record);
+        }
+
+        if (records.isEmpty()) {
+            throw new BusinessException(400, "没有可发布的接收人");
+        }
+        saveBatch(records);
     }
 
     public List<RemindRecord> listByPeriod(Long periodId) {
@@ -145,6 +181,9 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
     }
 
     private String buildContent(RemindRecord record) {
+        if ("NOTICE".equals(record.getRemindType()) && record.getContent() != null && !record.getContent().trim().isEmpty()) {
+            return record.getContent();
+        }
         String typeLabel = "SCORE".equals(record.getRemindType()) ? "评分任务" : "投票任务";
         EvalPeriod period = periodService.getById(record.getPeriodId());
         String periodName = period != null ? period.getPeriodName() : "当前周期";
@@ -165,6 +204,7 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
         record.setRemindType("SCORE");
         record.setRemindWay("DINGTALK");
         record.setSendStatus(sent ? 1 : 2);
+        record.setContent(content);
         record.setSendTime(LocalDateTime.now());
         save(record);
     }

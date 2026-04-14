@@ -25,6 +25,8 @@ public class RemindRecord {
     /** 0-待发送 1-已发送 2-发送失败 */
     private Integer sendStatus;
 
+    private String content;
+
     private LocalDateTime sendTime;
 
     @TableField(fill = FieldFill.INSERT)

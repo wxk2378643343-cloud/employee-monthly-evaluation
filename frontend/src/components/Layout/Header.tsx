@@ -9,6 +9,11 @@ import { RoleLabel } from '@/types';
 import type { MenuProps } from 'antd';
 
 const { Header: AntHeader } = Layout;
+const HEADER_REMIND_TYPE_LABEL: Record<string, string> = {
+  SCORE: '评分提醒',
+  VOTE: '投票提醒',
+  NOTICE: '系统消息',
+};
 
 interface HeaderProps {
   isMobile?: boolean;
@@ -29,6 +34,10 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false, onToggleSidebar }) =>
     setDrawerOpen(false);
     if (item.remindType === 'VOTE') {
       navigate(item.periodId ? `/vote/list?periodId=${item.periodId}` : '/vote/list');
+      return;
+    }
+    if (item.remindType === 'NOTICE') {
+      navigate('/remind/list');
       return;
     }
     navigate(item.periodId ? `/score/pending?periodId=${item.periodId}` : '/score/pending');
@@ -71,7 +80,7 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false, onToggleSidebar }) =>
                   title={
                     <Space size={8}>
                       {!item.isRead && <span className="remind-unread-dot" />}
-                      <Tag>{item.remindType}</Tag>
+                      <Tag>{HEADER_REMIND_TYPE_LABEL[item.remindType] || '消息提醒'}</Tag>
                     </Space>
                   }
                   description={

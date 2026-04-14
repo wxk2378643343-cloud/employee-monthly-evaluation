@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Form, InputNumber, Input, Button, Space, Alert } from 'antd';
+import { Form, InputNumber, Button, Space, Alert } from 'antd';
 import { EvalType, EvalTypeLabel, ScoreSubmit } from '@/types';
 
 interface ScoreFormProps {
@@ -28,7 +28,6 @@ const ScoreForm: React.FC<ScoreFormProps> = ({ targetUser, periodId, onSubmit, o
         targetId: targetUser.id,
         evalType: targetUser.evalType,
         score: values.score,
-        comment: values.comment,
       });
     } finally {
       setSubmitting(false);
@@ -54,11 +53,6 @@ const ScoreForm: React.FC<ScoreFormProps> = ({ targetUser, periodId, onSubmit, o
       >
         <InputNumber min={1} max={100} style={{ width: '100%' }} placeholder="1-100" />
       </Form.Item>
-
-      <Form.Item name="comment" label="评语">
-        <Input.TextArea rows={4} maxLength={500} showCount />
-      </Form.Item>
-
       <Form.Item style={{ marginBottom: 0 }}>
         <Space>
           <Button type="primary" onClick={handleSubmit} loading={submitting}>

@@ -1,7 +1,7 @@
 ﻿import request from '@/utils/request';
 
 export interface LoginParams {
-  username: string;
+  phone: string;
   password: string;
 }
 

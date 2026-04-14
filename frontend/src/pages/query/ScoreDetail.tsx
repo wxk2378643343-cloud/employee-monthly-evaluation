@@ -295,7 +295,6 @@ const ScoreDetail: React.FC = () => {
               },
               { title: '评分人', dataIndex: 'scorerName', key: 'scorerName' },
               { title: '分数', dataIndex: 'score', key: 'score', render: (s: number) => <Tag>{s}</Tag> },
-              ...(!isMobile ? [{ title: '评语', dataIndex: 'comment', key: 'comment' }] : []),
               ...(!isMobile ? [{ title: '时间', dataIndex: 'createTime', key: 'createTime' }] : []),
             ]}
           />

@@ -40,13 +40,13 @@ class AuthControllerTest {
         user.setUsername("u");
         user.setRealName("U");
         user.setRole("ADMIN");
-        when(userService.getByUsername("u")).thenReturn(user);
+        when(userService.getByPhoneOrUsername("13800138000")).thenReturn(user);
         when(jwtTokenProvider.generateToken(1L, "u", "ADMIN")).thenReturn("tkn");
         when(permissionService.getPermissionsByRole("ADMIN")).thenReturn(Arrays.asList("a", "b"));
 
         AuthController controller = new AuthController(authenticationManager, jwtTokenProvider, userService, permissionService);
         LoginDTO dto = new LoginDTO();
-        dto.setUsername("u");
+        dto.setPhone("13800138000");
         dto.setPassword("p");
         Result<Map<String, Object>> result = controller.login(dto);
         assertEquals(200, result.getCode());

@@ -32,10 +32,11 @@ public class AuthController {
 
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@Valid @RequestBody LoginDTO loginDTO) {
+        String loginId = loginDTO.getPhone();
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginDTO.getUsername(), loginDTO.getPassword()));
+                new UsernamePasswordAuthenticationToken(loginId, loginDTO.getPassword()));
 
-        SysUser user = userService.getByUsername(loginDTO.getUsername());
+        SysUser user = userService.getByPhoneOrUsername(loginId);
         String token = jwtTokenProvider.generateToken(user.getId(), user.getUsername(), user.getRole());
 
         Map<String, Object> data = new HashMap<>();

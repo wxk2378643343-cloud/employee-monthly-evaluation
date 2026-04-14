@@ -8,6 +8,7 @@ export const PermissionCode = {
   ASSIGN_MANAGE: 'assign:manage',
   LINEAR_MANAGE: 'linear:manage',
   PERIOD_MANAGE: 'period:manage',
+  REMIND_MANAGE: 'remind:manage',
   VOTE_VIEW: 'vote:view',
   QUERY_DETAIL_VIEW: 'query:detail:view',
   QUERY_RANK_VIEW: 'query:rank:view',

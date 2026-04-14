@@ -23,9 +23,9 @@ const LoginPage: React.FC = () => {
     const raw = localStorage.getItem(REMEMBER_KEY);
     if (!raw) return;
     try {
-      const saved = JSON.parse(raw) as { username?: string; password?: string };
+      const saved = JSON.parse(raw) as { phone?: string; password?: string };
       form.setFieldsValue({
-        username: saved.username || '',
+        phone: saved.phone || '',
         password: saved.password || '',
         remember: true,
       });
@@ -38,7 +38,7 @@ const LoginPage: React.FC = () => {
     try {
       await dispatch(
         login({
-          username: values.username,
+          phone: values.phone,
           password: values.password,
         })
       ).unwrap();
@@ -47,7 +47,7 @@ const LoginPage: React.FC = () => {
         localStorage.setItem(
           REMEMBER_KEY,
           JSON.stringify({
-            username: values.username,
+            phone: values.phone,
             password: values.password,
           })
         );
@@ -82,7 +82,7 @@ const LoginPage: React.FC = () => {
         <div className="login-v2__panel">
           <div className="login-v2__panel-head">
             <h2>欢迎登录</h2>
-            <p>请输入账号和密码</p>
+            <p>请输入手机号和密码</p>
           </div>
 
           <Form
@@ -94,11 +94,18 @@ const LoginPage: React.FC = () => {
             layout="vertical"
             initialValues={{ remember: false }}
           >
-            <Form.Item name="username" label="用户名" rules={[{ required: true, message: '请输入用户名' }]}>
+            <Form.Item
+              name="phone"
+              label="手机号"
+              rules={[
+                { required: true, message: '请输入手机号' },
+                { pattern: /^1\d{10}$/, message: '请输入正确的11位手机号' },
+              ]}
+            >
               <Input
                 prefix={<UserOutlined className="login-input-icon" />}
-                placeholder="请输入用户名"
-                autoComplete="username"
+                placeholder="请输入手机号"
+                autoComplete="tel"
               />
             </Form.Item>
 

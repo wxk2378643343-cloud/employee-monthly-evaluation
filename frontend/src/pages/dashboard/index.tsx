@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Row, Col, Statistic, Table, Select, Spin, Button, Progress, Tag, Empty, Space, Grid } from 'antd';
+import { Card, Row, Col, Statistic, Table, Select, Spin, Button, Progress, Tag, Empty, Space, Grid, List } from 'antd';
 import { UserOutlined, CheckCircleOutlined, ClockCircleOutlined, WarningOutlined, BellOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '@/store';
@@ -28,6 +28,7 @@ const Dashboard: React.FC = () => {
   const [pendingList, setPendingList] = useState<PendingUser[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [myHistory, setMyHistory] = useState<EvalHistory[]>([]);
+  const [noticeList, setNoticeList] = useState<{ id: number; remindContent: string; createTime?: string; isRead: boolean }[]>([]);
 
   const isAdmin = isAdminRole(user?.role);
   const isLeader = isLeaderOrAdmin(user?.role);
@@ -46,12 +47,24 @@ const Dashboard: React.FC = () => {
     (async () => {
       setLoading(true);
       try {
-        const [stats, ranks] = await Promise.all([
+        const [stats, ranks, reminds] = await Promise.all([
           isAdmin ? queryApi.getStatistics(currentPeriodId) : Promise.resolve(undefined),
           queryApi.getDeptRank(currentPeriodId),
+          remindApi.getMyReminds(currentPeriodId),
         ]);
         if (stats) setStatistics(stats);
         setRankList(ranks.slice(0, 10));
+        setNoticeList(
+          reminds
+            .filter((item) => item.remindType === 'NOTICE')
+            .slice(0, 5)
+            .map((item) => ({
+              id: item.id,
+              remindContent: item.remindContent,
+              createTime: item.createTime,
+              isRead: item.isRead,
+            }))
+        );
       } finally {
         setLoading(false);
       }
@@ -63,14 +76,26 @@ const Dashboard: React.FC = () => {
     (async () => {
       setLoading(true);
       try {
-        const [pending, unread, history] = await Promise.all([
+        const [pending, unread, history, reminds] = await Promise.all([
           scoreApi.getPendingList(currentPeriodId),
           remindApi.getUnreadCount(),
           queryApi.getMyHistory(currentPeriodId),
+          remindApi.getMyReminds(currentPeriodId),
         ]);
         setPendingList(pending);
         setUnreadCount(unread);
         setMyHistory(history.slice(0, 5));
+        setNoticeList(
+          reminds
+            .filter((item) => item.remindType === 'NOTICE')
+            .slice(0, 5)
+            .map((item) => ({
+              id: item.id,
+              remindContent: item.remindContent,
+              createTime: item.createTime,
+              isRead: item.isRead,
+            }))
+        );
       } finally {
         setLoading(false);
       }
@@ -106,23 +131,96 @@ const Dashboard: React.FC = () => {
         )}
 
         {isLeader && (
-          <Card title="排名概览（前 10）">
-            <Table
-              dataSource={rankList}
-              rowKey="targetId"
-              pagination={false}
-              columns={[
-                { title: '排名', dataIndex: 'deptRank', key: 'deptRank', width: 80 },
-                { title: '姓名', dataIndex: 'targetName', key: 'targetName' },
-                ...(!isMobile ? [{ title: '小组', dataIndex: 'groupName', key: 'groupName' }] : []),
-                { title: '综合分', dataIndex: 'weightedScore', key: 'weightedScore' },
-              ]}
-            />
-          </Card>
+          <Row gutter={16}>
+            <Col xs={24} lg={16}>
+              <Card title="排名概览（前 10）">
+                <Table
+                  dataSource={rankList}
+                  rowKey="targetId"
+                  pagination={false}
+                  columns={[
+                    { title: '排名', dataIndex: 'deptRank', key: 'deptRank', width: 80 },
+                    { title: '姓名', dataIndex: 'targetName', key: 'targetName' },
+                    ...(!isMobile ? [{ title: '小组', dataIndex: 'groupName', key: 'groupName' }] : []),
+                    { title: '综合分', dataIndex: 'weightedScore', key: 'weightedScore' },
+                  ]}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} lg={8}>
+              <Card title="消息通知">
+                {noticeList.length ? (
+                  <List
+                    dataSource={noticeList}
+                    renderItem={(item) => (
+                      <List.Item
+                        actions={[
+                          <Button key="view-all" type="link" onClick={() => navigate('/remind/list')}>
+                            查看全部
+                          </Button>,
+                        ]}
+                      >
+                        <List.Item.Meta
+                          title={
+                            <Space size={8}>
+                              <Tag color="gold">公告</Tag>
+                              {!item.isRead && <Tag color="green">未读</Tag>}
+                            </Space>
+                          }
+                          description={
+                            <div>
+                              <div>{item.remindContent}</div>
+                              <div className="text-muted-sm" style={{ marginTop: 6 }}>{item.createTime || '-'}</div>
+                            </div>
+                          }
+                        />
+                      </List.Item>
+                    )}
+                  />
+                ) : (
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无消息通知" />
+                )}
+              </Card>
+            </Col>
+          </Row>
         )}
 
         {!isLeader && (
           <>
+            <Card title="公告通知" style={{ marginBottom: 16 }}>
+              {noticeList.length ? (
+                <List
+                  dataSource={noticeList}
+                  renderItem={(item) => (
+                    <List.Item
+                      actions={[
+                        <Button key="view-all" type="link" onClick={() => navigate('/remind/list')}>
+                          查看全部
+                        </Button>,
+                      ]}
+                    >
+                      <List.Item.Meta
+                        title={
+                          <Space size={8}>
+                            <Tag color="gold">公告</Tag>
+                            {!item.isRead && <Tag color="green">未读</Tag>}
+                          </Space>
+                        }
+                        description={
+                          <div>
+                            <div>{item.remindContent}</div>
+                            <div className="text-muted-sm" style={{ marginTop: 6 }}>{item.createTime || '-'}</div>
+                          </div>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              ) : (
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无公告通知" />
+              )}
+            </Card>
+
             <Row gutter={16} style={{ marginBottom: 16 }}>
               <Col xs={24} md={12} lg={8}>
                 <Card>

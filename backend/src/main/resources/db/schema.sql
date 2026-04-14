@@ -143,6 +143,7 @@ CREATE TABLE IF NOT EXISTS remind_record (
     remind_type   VARCHAR(30) NOT NULL COMMENT '提醒类型: SCORE/VOTE',
     remind_way    VARCHAR(20) NOT NULL COMMENT '提醒方式: DINGTALK/SYSTEM',
     send_status   TINYINT DEFAULT 0 COMMENT '发送状态 0-待发送 1-已发送 2-发送失败',
+    content       VARCHAR(500) COMMENT '消息内容',
     send_time     DATETIME COMMENT '发送时间',
     create_time   DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     deleted       TINYINT DEFAULT 0 COMMENT '逻辑删除 0-未删除 1-已删除',

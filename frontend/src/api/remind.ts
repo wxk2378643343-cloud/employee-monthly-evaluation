@@ -29,6 +29,10 @@ export function sendPeriodRemind(periodId: number): Promise<void> {
   return request.post(`/reminds/send/${periodId}`);
 }
 
+export function publishMessage(data: { userIds: number[]; periodId: number; content: string }): Promise<void> {
+  return request.post('/reminds/publish', data);
+}
+
 export function getRemindList(params: { pageNum: number; pageSize: number; periodId?: number }): Promise<{
   total: number;
   list: Remind[];
@@ -39,4 +43,10 @@ export function getRemindList(params: { pageNum: number; pageSize: number; perio
     const paged = list.slice(start, start + params.pageSize);
     return { total: list.length, list: paged };
   });
+}
+
+export function getMyReminds(periodId?: number): Promise<Remind[]> {
+  return request.get('/reminds/mine', { params: { periodId } }).then((res: any) =>
+    Array.isArray(res) ? (res as Remind[]) : []
+  );
 }

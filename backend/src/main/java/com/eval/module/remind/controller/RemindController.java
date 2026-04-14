@@ -1,12 +1,14 @@
 package com.eval.module.remind.controller;
 
 import com.eval.common.result.Result;
+import com.eval.module.remind.dto.PublishMessageDTO;
 import com.eval.module.remind.entity.RemindRecord;
 import com.eval.module.remind.service.RemindService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +30,13 @@ public class RemindController {
     @PreAuthorize("hasAuthority('remind:manage')")
     public Result<Void> sendUserRemind(@PathVariable Long periodId, @PathVariable Long userId) {
         remindService.remindSingleUser(periodId, userId);
+        return Result.success();
+    }
+
+    @PostMapping("/publish")
+    @PreAuthorize("hasAuthority('remind:manage')")
+    public Result<Void> publishMessage(@Valid @RequestBody PublishMessageDTO dto) {
+        remindService.publishMessage(dto);
         return Result.success();
     }
 

@@ -49,6 +49,20 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
                 .eq(SysUser::getStatus, 1));
     }
 
+    public SysUser getByPhone(String phone) {
+        return getOne(new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getPhone, phone)
+                .eq(SysUser::getStatus, 1));
+    }
+
+    public SysUser getByPhoneOrUsername(String phoneOrUsername) {
+        SysUser user = getByPhone(phoneOrUsername);
+        if (user != null) {
+            return user;
+        }
+        return getByUsername(phoneOrUsername);
+    }
+
     public UserInfoVO getUserInfo(Long userId) {
         SysUser user = getById(userId);
         if (user == null) {

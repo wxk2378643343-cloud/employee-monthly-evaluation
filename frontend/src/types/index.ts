@@ -158,7 +158,6 @@ export interface ScoreSubmit {
   targetId: number;
   evalType: EvalType;
   score: number;
-  comment?: string;
 }
 
 export interface EvalHistory {
@@ -206,7 +205,7 @@ export interface VoteCandidate extends RankInfo {
   voteType?: 'EXCELLENT' | 'POOR';
 }
 
-export type RemindType = 'SCORE' | 'VOTE';
+export type RemindType = 'SCORE' | 'VOTE' | 'NOTICE';
 
 export interface Remind {
   id: number;
