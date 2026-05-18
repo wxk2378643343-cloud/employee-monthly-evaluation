@@ -152,9 +152,10 @@ CREATE TABLE IF NOT EXISTS remind_record (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='提醒记录表';
 
 -- 初始化管理员账号（密码: admin123，BCrypt加密）
-INSERT INTO sys_user (username, password, real_name, role, status)
-VALUES ('admin', '$2a$10$n6iGSjgj87ygQPMhe7zgXe53mgCMmbxiWbPpfatH5n/xjS2MOchGy', 'System Admin', 'ADMIN', 1)
-ON DUPLICATE KEY UPDATE password = '$2a$10$n6iGSjgj87ygQPMhe7zgXe53mgCMmbxiWbPpfatH5n/xjS2MOchGy';
+INSERT INTO sys_user (username, password, real_name, role, phone, status)
+VALUES ('admin', '$2a$10$n6iGSjgj87ygQPMhe7zgXe53mgCMmbxiWbPpfatH5n/xjS2MOchGy', 'System Admin', 'ADMIN', '13800000000', 1)
+ON DUPLICATE KEY UPDATE password = '$2a$10$n6iGSjgj87ygQPMhe7zgXe53mgCMmbxiWbPpfatH5n/xjS2MOchGy',
+                        phone = '13800000000';
 
 CREATE TABLE IF NOT EXISTS sys_role (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Role ID',
