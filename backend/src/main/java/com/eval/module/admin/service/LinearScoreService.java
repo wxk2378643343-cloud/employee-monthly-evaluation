@@ -21,6 +21,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
@@ -89,6 +90,10 @@ public class LinearScoreService {
     public void setLinearScore(LinearScoreDTO dto) {
         if (dto == null || dto.getLinearRankScore() == null) {
             throw new BusinessException(400, "\u7EBF\u6027\u5206\u4E0D\u80FD\u4E3A\u7A7A");
+        }
+        SysUser target = userService.getById(dto.getTargetId());
+        if (target == null) {
+            throw new BusinessException(400, "\u5458\u5DE5\u4E0D\u5B58\u5728: " + dto.getTargetId());
         }
         if (dto.getLinearRankScore().compareTo(BigDecimal.ZERO) < 0
                 || dto.getLinearRankScore().compareTo(new BigDecimal("100")) > 0) {
@@ -171,6 +176,7 @@ public class LinearScoreService {
         }
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public LinearScoreImportResultVO importLinearScoreExcel(Long periodId, MultipartFile file) {
         if (periodId == null) {
             throw new BusinessException(400, "\u5468\u671F\u4E0D\u80FD\u4E3A\u7A7A");
@@ -181,6 +187,8 @@ public class LinearScoreService {
 
         LinearScoreImportResultVO result = new LinearScoreImportResultVO();
         DataFormatter formatter = new DataFormatter();
+        List<LinearScoreDTO> validRows = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
         try (InputStream inputStream = file.getInputStream(); Workbook workbook = WorkbookFactory.create(inputStream)) {
             Sheet sheet = workbook.getNumberOfSheets() > 0 ? workbook.getSheetAt(0) : null;
             if (sheet == null) {
@@ -195,6 +203,9 @@ public class LinearScoreService {
                 }
 
                 String targetIdText = formatter.formatCellValue(row.getCell(0)).trim();
+                String targetNameText = formatter.formatCellValue(row.getCell(1)).trim();
+                String deptNameText = formatter.formatCellValue(row.getCell(2)).trim();
+                String groupNameText = formatter.formatCellValue(row.getCell(3)).trim();
                 // New template: linear score at column 4; old template used column 5.
                 String linearText = formatter.formatCellValue(row.getCell(4)).trim();
                 if (linearText.isEmpty()) {
@@ -206,24 +217,22 @@ public class LinearScoreService {
 
                 result.setTotalRows(result.getTotalRows() + 1);
                 try {
-                    if (targetIdText.isEmpty()) {
-                        throw new BusinessException(400, "\u5458\u5DE5ID\u4E0D\u80FD\u4E3A\u7A7A");
-                    }
-                    Long targetId = Long.parseLong(targetIdText);
-
-                    if (linearText.isEmpty()) {
-                        throw new BusinessException(400, "\u7EBF\u6027\u5206\u4E0D\u80FD\u4E3A\u7A7A");
-                    }
-                    BigDecimal linearScore = new BigDecimal(linearText);
-
-                    setLinearScore(buildLinearDto(periodId, targetId, linearScore));
-                    result.setSuccessCount(result.getSuccessCount() + 1);
+                    validRows.add(validateImportRow(periodId, targetIdText, targetNameText, deptNameText, groupNameText, linearText));
                 } catch (Exception ex) {
-                    result.setFailedCount(result.getFailedCount() + 1);
-                    result.getErrors().add("\u7B2C" + (i + 1) + "\u884C: " + ex.getMessage());
+                    errors.add("\u7B2C" + (i + 1) + "\u884C: " + ex.getMessage());
                 }
             }
 
+            if (!errors.isEmpty()) {
+                result.setFailedCount(errors.size());
+                result.getErrors().addAll(errors);
+                throw new BusinessException(400, "\u7EBF\u6027\u5206\u5BFC\u5165\u5931\u8D25\uFF0C\u8BF7\u6838\u5BF9\u7528\u6237\u4FE1\u606F\uFF1A" + String.join("\uFF1B", errors));
+            }
+
+            for (LinearScoreDTO dto : validRows) {
+                setLinearScore(dto);
+            }
+            result.setSuccessCount(validRows.size());
             return result;
         } catch (IOException ex) {
             throw new BusinessException(400, "\u8BFB\u53D6Excel\u5931\u8D25");
@@ -231,6 +240,71 @@ public class LinearScoreService {
             throw ex;
         } catch (Exception ex) {
             throw new BusinessException(400, "Excel\u683C\u5F0F\u4E0D\u6B63\u786E");
+        }
+    }
+
+    private LinearScoreDTO validateImportRow(Long periodId,
+                                             String targetIdText,
+                                             String targetNameText,
+                                             String deptNameText,
+                                             String groupNameText,
+                                             String linearText) {
+        if (targetIdText.isEmpty()) {
+            throw new BusinessException(400, "\u5458\u5DE5ID\u4E0D\u80FD\u4E3A\u7A7A");
+        }
+
+        Long targetId;
+        try {
+            targetId = Long.parseLong(targetIdText);
+        } catch (NumberFormatException ex) {
+            throw new BusinessException(400, "\u5458\u5DE5ID\u5FC5\u987B\u662F\u6570\u5B57");
+        }
+
+        SysUser user = userService.getById(targetId);
+        if (user == null) {
+            throw new BusinessException(400, "\u5458\u5DE5\u4E0D\u5B58\u5728: " + targetIdText);
+        }
+        if (!targetNameText.isEmpty() && !targetNameText.equals(user.getRealName())) {
+            throw new BusinessException(400, "\u5458\u5DE5\u59D3\u540D\u4E0D\u5339\u914D\uFF0C\u5BFC\u5165\u503C: " + targetNameText + "\uFF0C\u7CFB\u7EDF\u503C: " + safe(user.getRealName()));
+        }
+        validateDepartment(user, deptNameText);
+        validateGroup(user, groupNameText);
+
+        if (linearText.isEmpty()) {
+            throw new BusinessException(400, "\u7EBF\u6027\u5206\u4E0D\u80FD\u4E3A\u7A7A");
+        }
+        BigDecimal linearScore;
+        try {
+            linearScore = new BigDecimal(linearText);
+        } catch (NumberFormatException ex) {
+            throw new BusinessException(400, "\u7EBF\u6027\u5206\u5FC5\u987B\u662F\u6570\u5B57");
+        }
+        if (linearScore.compareTo(BigDecimal.ZERO) < 0 || linearScore.compareTo(new BigDecimal("100")) > 0) {
+            throw new BusinessException(400, "\u7EBF\u6027\u5206\u5FC5\u987B\u57280\u5230100\u4E4B\u95F4");
+        }
+
+        return buildLinearDto(periodId, targetId, linearScore);
+    }
+
+    private void validateDepartment(SysUser user, String deptNameText) {
+        if (deptNameText.isEmpty()) {
+            return;
+        }
+        SysDepartment dept = user.getDeptId() == null ? null : deptService.getById(user.getDeptId());
+        String expected = dept == null ? "" : safe(dept.getDeptName());
+        if (!deptNameText.equals(expected)) {
+            throw new BusinessException(400, "\u90E8\u95E8\u4E0D\u5339\u914D\uFF0C\u5BFC\u5165\u503C: " + deptNameText + "\uFF0C\u7CFB\u7EDF\u503C: " + expected);
+        }
+    }
+
+    private void validateGroup(SysUser user, String groupNameText) {
+        if (groupNameText.isEmpty()) {
+            return;
+        }
+        SysGroup group = user.getGroupId() == null ? null : groupService.getById(user.getGroupId());
+        String expected = group == null ? "" : safe(group.getGroupName());
+        if (!groupNameText.equals(expected)) {
+            throw new BusinessException(400, "\u7F51\u683C\u4E0D\u5339\u914D\uFF0C\u5BFC\u5165\u503C: " + groupNameText + "\uFF0C\u7CFB\u7EDF\u503C: " + expected);
         }
     }
 

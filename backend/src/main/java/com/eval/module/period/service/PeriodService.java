@@ -58,6 +58,11 @@ public class PeriodService extends ServiceImpl<EvalPeriodMapper, EvalPeriod> {
         if (period == null || period.getId() == null) {
             throw new BusinessException("period id is required");
         }
+        EvalPeriod existing = getById(period.getId());
+        if (existing == null) {
+            throw new BusinessException("评价周期不存在");
+        }
+        validateStatusTransition(existing.getStatus(), period.getStatus(), false);
         validatePeriodTime(period);
         updateById(period);
     }
@@ -67,6 +72,7 @@ public class PeriodService extends ServiceImpl<EvalPeriodMapper, EvalPeriod> {
         if (period == null) {
             throw new BusinessException("评价周期不存在");
         }
+        validateStatusTransition(period.getStatus(), 1, true);
         EvalPeriod activePeriod = getCurrentPeriod();
         if (activePeriod != null && !activePeriod.getId().equals(periodId)) {
             activePeriod.setStatus(2);
@@ -81,6 +87,7 @@ public class PeriodService extends ServiceImpl<EvalPeriodMapper, EvalPeriod> {
         if (period == null) {
             throw new BusinessException("评价周期不存在");
         }
+        validateStatusTransition(period.getStatus(), 2, true);
         period.setStatus(2);
         updateById(period);
     }
@@ -102,5 +109,30 @@ public class PeriodService extends ServiceImpl<EvalPeriodMapper, EvalPeriod> {
         if (start != null && end != null && start.isAfter(end)) {
             throw new BusinessException("开始时间不能晚于结束时间");
         }
+    }
+
+    private void validateStatusTransition(Integer currentStatus, Integer nextStatus, boolean explicitAction) {
+        if (nextStatus == null || currentStatus == null || currentStatus.equals(nextStatus)) {
+            return;
+        }
+        if (!explicitAction) {
+            throw new BusinessException("周期状态请通过开始或结束操作变更");
+        }
+        if (currentStatus == 0 && nextStatus == 1) {
+            return;
+        }
+        if (currentStatus == 1 && nextStatus == 2) {
+            return;
+        }
+        if (currentStatus == 0 && nextStatus == 2) {
+            throw new BusinessException("未开始的周期不能直接结束");
+        }
+        if (currentStatus == 1 && nextStatus == 0) {
+            throw new BusinessException("进行中的周期不能改回未开始");
+        }
+        if (currentStatus == 2) {
+            throw new BusinessException("已结束的周期不能重新开始或改回未开始");
+        }
+        throw new BusinessException("不支持的周期状态变更");
     }
 }

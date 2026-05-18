@@ -1,12 +1,13 @@
-﻿import React, { useEffect, useState } from 'react';
-import { Card, Table, Select, Button, Tag, Space, Spin, Modal, Grid } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Card, Table, Select, Button, Tag, Space, Spin, Modal, Grid, Alert } from 'antd';
 import { message } from '@/utils/message';
 import { EditOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
+import dayjs from 'dayjs';
 import * as scoreApi from '@/api/score';
 import * as adminApi from '@/api/admin';
 import ScoreForm from './ScoreForm';
-import { EvalPeriod, PendingUser, ScoreSubmit, EvalTypeLabel } from '@/types';
+import { EvalPeriod, PendingUser, ScoreSubmit, EvalTypeLabel, PeriodStatus } from '@/types';
 
 const PendingList: React.FC = () => {
   const screens = Grid.useBreakpoint();
@@ -57,6 +58,29 @@ const PendingList: React.FC = () => {
     loadPendingList();
   };
 
+  const currentPeriod = useMemo(
+    () => periods.find((p) => p.id === currentPeriodId),
+    [periods, currentPeriodId]
+  );
+
+  const canScoreCurrentPeriod = useMemo(() => {
+    if (!currentPeriod || currentPeriod.status !== PeriodStatus.IN_PROGRESS) {
+      return false;
+    }
+    const now = dayjs();
+    if (currentPeriod.startTime && now.isBefore(dayjs(currentPeriod.startTime))) {
+      return false;
+    }
+    if (currentPeriod.endTime && now.isAfter(dayjs(currentPeriod.endTime))) {
+      return false;
+    }
+    return true;
+  }, [currentPeriod]);
+
+  const periodScoreTip = currentPeriod
+    ? '当前周期未开始、已结束或不在评分时间范围内，暂无评分任务'
+    : '请先选择评价周期';
+
   const columns = [
     { title: '被评价人', dataIndex: 'targetName', key: 'targetName' },
     ...(!isMobile ? [{ title: '部门', dataIndex: 'deptName', key: 'deptName' }] : []),
@@ -89,7 +113,7 @@ const PendingList: React.FC = () => {
             setCurrentTarget(record);
             setModalVisible(true);
           }}
-          disabled={record.status === 1}
+          disabled={record.status === 1 || !canScoreCurrentPeriod}
         >
           {record.status === 1 ? '已完成' : '去评分'}
         </Button>
@@ -113,8 +137,17 @@ const PendingList: React.FC = () => {
         </Space>
       }
     >
+      {!canScoreCurrentPeriod && (
+        <Alert type="warning" showIcon message={periodScoreTip} style={{ marginBottom: 16 }} />
+      )}
       <Spin spinning={loading}>
-        <Table dataSource={pendingList} columns={columns} rowKey="assignId" pagination={{ pageSize: 10, size: 'small' }} />
+        <Table
+          dataSource={canScoreCurrentPeriod ? pendingList : []}
+          columns={columns}
+          rowKey="assignId"
+          pagination={{ pageSize: 10, size: 'small' }}
+          locale={{ emptyText: canScoreCurrentPeriod ? '当前周期暂无评价任务' : periodScoreTip }}
+        />
       </Spin>
 
       <Modal title="提交评分" open={modalVisible} onCancel={() => setModalVisible(false)} footer={null} destroyOnHidden>

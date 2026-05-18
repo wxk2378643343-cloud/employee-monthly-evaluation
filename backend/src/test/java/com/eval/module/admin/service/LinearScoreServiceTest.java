@@ -70,6 +70,7 @@ class LinearScoreServiceTest {
         user.setRealName("u");
         user.setRole("EMPLOYEE");
         user.setStatus(1);
+        when(userService.getById(2L)).thenReturn(user);
         when(userService.list(any(LambdaQueryWrapper.class))).thenReturn(Collections.singletonList(user));
         when(mapper.selectList(any())).thenReturn(Collections.emptyList());
         byte[] bytes = service.exportLinearScoreExcel(1L, null);
@@ -94,5 +95,33 @@ class LinearScoreServiceTest {
         LinearScoreImportResultVO result = service.importLinearScoreExcel(1L, file);
         assertEquals(1, result.getSuccessCount());
         assertThrows(BusinessException.class, () -> service.importLinearScoreExcel(null, file));
+    }
+
+    @Test
+    void importFailsWithoutWritingWhenUserInfoMismatch() throws Exception {
+        EvalRecordMapper mapper = mock(EvalRecordMapper.class);
+        UserService userService = mock(UserService.class);
+        LinearScoreService service = spy(new LinearScoreService(mapper, userService, mock(DeptService.class), mock(GroupService.class)));
+
+        SysUser user = new SysUser();
+        user.setId(2L);
+        user.setRealName("system-name");
+        when(userService.getById(2L)).thenReturn(user);
+
+        XSSFWorkbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("s");
+        sheet.createRow(0);
+        Row row = sheet.createRow(1);
+        row.createCell(0).setCellValue("2");
+        row.createCell(1).setCellValue("excel-name");
+        row.createCell(4).setCellValue("77");
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        workbook.write(out);
+        workbook.close();
+
+        MockMultipartFile file = new MockMultipartFile("file", "x.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", out.toByteArray());
+        assertThrows(BusinessException.class, () -> service.importLinearScoreExcel(1L, file));
+        verify(service, never()).setLinearScore(any(LinearScoreDTO.class));
     }
 }

@@ -2,8 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Card, Row, Col, Statistic, Table, Select, Spin, Button, Progress, Tag, Empty, Space, Grid, List } from 'antd';
 import { UserOutlined, CheckCircleOutlined, ClockCircleOutlined, WarningOutlined, BellOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
 import { useAppSelector } from '@/store';
-import { isAdminRole, isLeaderOrAdmin, EvalPeriod, RankInfo, PendingUser, EvalTypeLabel, EvalHistory } from '@/types';
+import { isAdminRole, isLeaderOrAdmin, EvalPeriod, RankInfo, PendingUser, EvalTypeLabel, EvalHistory, PeriodStatus } from '@/types';
 import * as queryApi from '@/api/query';
 import * as adminApi from '@/api/admin';
 import * as scoreApi from '@/api/score';
@@ -32,6 +33,24 @@ const Dashboard: React.FC = () => {
 
   const isAdmin = isAdminRole(user?.role);
   const isLeader = isLeaderOrAdmin(user?.role);
+  const currentPeriod = useMemo(
+    () => periods.find((p) => p.id === currentPeriodId),
+    [periods, currentPeriodId]
+  );
+  const canScoreCurrentPeriod = useMemo(() => {
+    if (!currentPeriod || currentPeriod.status !== PeriodStatus.IN_PROGRESS) {
+      return false;
+    }
+    const now = dayjs();
+    if (currentPeriod.startTime && now.isBefore(dayjs(currentPeriod.startTime))) {
+      return false;
+    }
+    if (currentPeriod.endTime && now.isAfter(dayjs(currentPeriod.endTime))) {
+      return false;
+    }
+    return true;
+  }, [currentPeriod]);
+  const visiblePendingList = canScoreCurrentPeriod ? pendingList : [];
 
   useEffect(() => {
     (async () => {
@@ -102,12 +121,12 @@ const Dashboard: React.FC = () => {
     })();
   }, [currentPeriodId, isLeader]);
 
-  const pendingCount = useMemo(() => pendingList.filter((item) => item.status !== 1).length, [pendingList]);
-  const submittedCount = useMemo(() => pendingList.filter((item) => item.status === 1).length, [pendingList]);
+  const pendingCount = useMemo(() => visiblePendingList.filter((item) => item.status !== 1).length, [visiblePendingList]);
+  const submittedCount = useMemo(() => visiblePendingList.filter((item) => item.status === 1).length, [visiblePendingList]);
   const progressPercent = useMemo(() => {
-    if (!pendingList.length) return 0;
-    return Math.round((submittedCount / pendingList.length) * 100);
-  }, [pendingList.length, submittedCount]);
+    if (!visiblePendingList.length) return 0;
+    return Math.round((submittedCount / visiblePendingList.length) * 100);
+  }, [visiblePendingList.length, submittedCount]);
 
   return (
     <Spin spinning={loading}>
@@ -242,14 +261,20 @@ const Dashboard: React.FC = () => {
             <Row gutter={16} style={{ marginBottom: 16 }}>
               <Col xs={24} lg={12}>
                 <Card title="本周期进度" className="employee-progress-card">
-                  <Progress percent={progressPercent} status={progressPercent === 100 ? 'success' : 'active'} />
-                  <div className="text-muted-sm" style={{ marginTop: 8 }}>
-                    本周期共 {pendingList.length} 条评价任务，已完成 {submittedCount} 条
-                  </div>
-                  <Space style={{ marginTop: 14 }} wrap>
-                    <Button type="primary" onClick={() => navigate('/score/pending')}>去评分</Button>
-                    <Button onClick={() => navigate('/score/submitted')}>查看已提交</Button>
-                  </Space>
+                  {canScoreCurrentPeriod ? (
+                    <>
+                      <Progress percent={progressPercent} status={progressPercent === 100 ? 'success' : 'active'} />
+                      <div className="text-muted-sm" style={{ marginTop: 8 }}>
+                        本周期共 {visiblePendingList.length} 条评价任务，已完成 {submittedCount} 条
+                      </div>
+                      <Space style={{ marginTop: 14 }} wrap>
+                        <Button type="primary" onClick={() => navigate('/score/pending')}>去评分</Button>
+                        <Button onClick={() => navigate('/score/submitted')}>查看已提交</Button>
+                      </Space>
+                    </>
+                  ) : (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="当前周期暂无评分任务" />
+                  )}
                 </Card>
               </Col>
               <Col xs={24} lg={12}>
@@ -272,7 +297,7 @@ const Dashboard: React.FC = () => {
 
             <Card title="我的待办">
               <Table
-                dataSource={pendingList}
+                dataSource={visiblePendingList}
                 rowKey="assignId"
                 pagination={{ pageSize: 5 }}
                 locale={{ emptyText: '当前周期暂无评价任务' }}

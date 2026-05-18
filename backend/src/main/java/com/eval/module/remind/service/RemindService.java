@@ -197,15 +197,32 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
         }
         String content = String.format("[%s] 你还有待完成的评分任务，请及时处理。", periodName);
         boolean sent = dingTalkService.sendTextMessage(String.format("%s %s", user.getRealName(), content));
+        LocalDateTime now = LocalDateTime.now();
 
-        RemindRecord record = new RemindRecord();
+        RemindRecord record = getOne(new LambdaQueryWrapper<RemindRecord>()
+                .eq(RemindRecord::getPeriodId, periodId)
+                .eq(RemindRecord::getUserId, userId)
+                .eq(RemindRecord::getRemindType, "SCORE")
+                .last("limit 1"));
+        boolean isNew = record == null;
+        if (isNew) {
+            record = new RemindRecord();
+        }
         record.setPeriodId(periodId);
         record.setUserId(userId);
         record.setRemindType("SCORE");
         record.setRemindWay("DINGTALK");
         record.setSendStatus(sent ? 1 : 2);
         record.setContent(content);
-        record.setSendTime(LocalDateTime.now());
-        save(record);
+        record.setSendTime(now);
+        if (isNew) {
+            save(record);
+        } else {
+            updateById(record);
+            Set<Long> readSet = readIndex.get(userId);
+            if (readSet != null) {
+                readSet.remove(record.getId());
+            }
+        }
     }
 }

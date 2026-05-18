@@ -19,14 +19,12 @@ public class RoleService extends ServiceImpl<SysRoleMapper, SysRole> {
 
     public List<SysRole> listAll() {
         return list(new LambdaQueryWrapper<SysRole>()
-                .orderByAsc(SysRole::getSortOrder)
                 .orderByAsc(SysRole::getId));
     }
 
     public List<SysRole> listEnabled() {
         return list(new LambdaQueryWrapper<SysRole>()
                 .eq(SysRole::getStatus, 1)
-                .orderByAsc(SysRole::getSortOrder)
                 .orderByAsc(SysRole::getId));
     }
 
@@ -38,9 +36,6 @@ public class RoleService extends ServiceImpl<SysRoleMapper, SysRole> {
         role.setRoleCode(roleCode);
         if (role.getStatus() == null) {
             role.setStatus(1);
-        }
-        if (role.getSortOrder() == null) {
-            role.setSortOrder(0);
         }
         save(role);
     }
@@ -57,9 +52,6 @@ public class RoleService extends ServiceImpl<SysRoleMapper, SysRole> {
             }
         }
         existing.setRoleName(payload.getRoleName());
-        if (payload.getSortOrder() != null) {
-            existing.setSortOrder(payload.getSortOrder());
-        }
         if (payload.getStatus() != null) {
             existing.setStatus(payload.getStatus());
         }

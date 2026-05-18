@@ -85,12 +85,13 @@ const LinearScore: React.FC = () => {
         message.warning('请先选择周期');
         return Upload.LIST_IGNORE;
       }
-      const result = await adminApi.importLinearScoreExcel(currentPeriodId, file as File);
-      message.success(`导入完成：成功 ${result.successCount}，失败 ${result.failedCount}`);
-      if (result.failedCount > 0 && result.errors?.length) {
-        message.warning(result.errors.slice(0, 2).join('；'));
+      try {
+        const result = await adminApi.importLinearScoreExcel(currentPeriodId, file as File);
+        message.success(`导入成功：共导入 ${result.successCount} 条`);
+        await reload(currentPeriodId, currentDeptId);
+      } catch {
+        // The request interceptor displays the backend validation message.
       }
-      await reload(currentPeriodId, currentDeptId);
       return Upload.LIST_IGNORE;
     },
   };

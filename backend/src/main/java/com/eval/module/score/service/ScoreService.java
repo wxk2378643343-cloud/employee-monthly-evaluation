@@ -5,6 +5,8 @@ import com.eval.common.exception.BusinessException;
 import com.eval.common.utils.SecurityUtils;
 import com.eval.module.admin.entity.EvalScoreAssign;
 import com.eval.module.admin.service.AssignService;
+import com.eval.module.period.entity.EvalPeriod;
+import com.eval.module.period.service.PeriodService;
 import com.eval.module.score.dto.PendingUserVO;
 import com.eval.module.score.dto.ScoreSubmitDTO;
 import com.eval.module.score.entity.EvalDetail;
@@ -19,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,11 +32,16 @@ public class ScoreService {
     private final EvalDetailMapper evalDetailMapper;
     private final AssignService assignService;
     private final ScoreCalculateService scoreCalculateService;
+    private final PeriodService periodService;
     private final UserService userService;
     private final DeptService deptService;
     private final GroupService groupService;
 
     public List<PendingUserVO> getPendingList(Long periodId) {
+        if (!isScoringPeriodAvailable(periodId)) {
+            return new ArrayList<>();
+        }
+
         Long currentUserId = SecurityUtils.getCurrentUserId();
         List<EvalScoreAssign> assigns = assignService.listByScorerAndPeriod(currentUserId, periodId);
 
@@ -68,6 +76,7 @@ public class ScoreService {
 
     @Transactional
     public void submitScore(ScoreSubmitDTO dto) {
+        validateScoringPeriod(dto.getPeriodId());
         Long currentUserId = SecurityUtils.getCurrentUserId();
 
         // Verify assignment exists
@@ -121,5 +130,43 @@ public class ScoreService {
         for (ScoreSubmitDTO dto : dtos) {
             submitScore(dto);
         }
+    }
+
+    private void validateScoringPeriod(Long periodId) {
+        EvalPeriod period = getScoringPeriod(periodId);
+        if (period == null) {
+            throw new BusinessException(400, "评价周期不存在");
+        }
+        if (period.getStatus() == null || period.getStatus() != 1) {
+            throw new BusinessException(400, "当前评价周期未开始或已结束，不能评分");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (period.getStartTime() != null && now.isBefore(period.getStartTime())) {
+            throw new BusinessException(400, "评价周期尚未开始，不能评分");
+        }
+        if (period.getEndTime() != null && now.isAfter(period.getEndTime())) {
+            throw new BusinessException(400, "评价周期已结束，不能评分");
+        }
+    }
+
+    private boolean isScoringPeriodAvailable(Long periodId) {
+        EvalPeriod period = getScoringPeriod(periodId);
+        if (period == null || period.getStatus() == null || period.getStatus() != 1) {
+            return false;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (period.getStartTime() != null && now.isBefore(period.getStartTime())) {
+            return false;
+        }
+        return period.getEndTime() == null || !now.isAfter(period.getEndTime());
+    }
+
+    private EvalPeriod getScoringPeriod(Long periodId) {
+        if (periodId == null) {
+            return null;
+        }
+        return periodService.getById(periodId);
     }
 }

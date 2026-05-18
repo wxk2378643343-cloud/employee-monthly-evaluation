@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
-import { Card, Table, Button, Space, Modal, Form, Input, DatePicker, Select, Tag, Popconfirm } from 'antd';
+import { Card, Table, Button, Space, Modal, Form, Input, DatePicker, Tag, Popconfirm } from 'antd';
 import { message } from '@/utils/message';
 import { PlusOutlined, EditOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -234,11 +234,6 @@ const PeriodManage: React.FC = () => {
               <DatePicker showTime />
             </Form.Item>
           </Space>
-          <Form.Item name="status" label="状态"><Select>
-            <Select.Option value={PeriodStatus.NOT_STARTED}>{PeriodStatusLabel[PeriodStatus.NOT_STARTED]}</Select.Option>
-            <Select.Option value={PeriodStatus.IN_PROGRESS}>{PeriodStatusLabel[PeriodStatus.IN_PROGRESS]}</Select.Option>
-            <Select.Option value={PeriodStatus.ENDED}>{PeriodStatusLabel[PeriodStatus.ENDED]}</Select.Option>
-          </Select></Form.Item>
         </Form>
       </Modal>
     </Card>

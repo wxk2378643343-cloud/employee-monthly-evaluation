@@ -41,8 +41,10 @@ class PeriodServiceTest {
         PeriodService service = spy(new PeriodService());
         EvalPeriod target = new EvalPeriod();
         target.setId(2L);
+        target.setStatus(0);
         EvalPeriod active = new EvalPeriod();
         active.setId(1L);
+        active.setStatus(1);
         doReturn(target).when(service).getById(2L);
         doReturn(active).when(service).getCurrentPeriod();
         doReturn(true).when(service).updateById(any(EvalPeriod.class));
@@ -60,9 +62,35 @@ class PeriodServiceTest {
 
         EvalPeriod period = new EvalPeriod();
         period.setId(2L);
+        period.setStatus(1);
         doReturn(period).when(service).getById(2L);
         doReturn(true).when(service).updateById(period);
         service.endPeriod(2L);
         assertEquals(2, period.getStatus());
+    }
+
+    @Test
+    void updatePeriodRejectsStatusChangeThroughEdit() {
+        PeriodService service = spy(new PeriodService());
+        EvalPeriod existing = new EvalPeriod();
+        existing.setId(1L);
+        existing.setStatus(1);
+        doReturn(existing).when(service).getById(1L);
+
+        EvalPeriod payload = new EvalPeriod();
+        payload.setId(1L);
+        payload.setStatus(0);
+        assertThrows(BusinessException.class, () -> service.updatePeriod(payload));
+    }
+
+    @Test
+    void endedPeriodCannotRestart() {
+        PeriodService service = spy(new PeriodService());
+        EvalPeriod ended = new EvalPeriod();
+        ended.setId(1L);
+        ended.setStatus(2);
+        doReturn(ended).when(service).getById(1L);
+
+        assertThrows(BusinessException.class, () -> service.startPeriod(1L));
     }
 }

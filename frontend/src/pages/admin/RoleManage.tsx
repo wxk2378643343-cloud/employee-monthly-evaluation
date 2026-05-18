@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { Button, Card, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, Tag } from 'antd';
+import { Button, Card, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { message } from '@/utils/message';
 import * as adminApi from '@/api/admin';
@@ -29,7 +29,7 @@ const RoleManage: React.FC = () => {
   const onCreate = () => {
     setEditing(null);
     form.resetFields();
-    form.setFieldsValue({ status: 1, sortOrder: 0 });
+    form.setFieldsValue({ status: 1 });
     setModalOpen(true);
   };
 
@@ -69,7 +69,6 @@ const RoleManage: React.FC = () => {
             key: 'roleName',
             render: (_: string, row: SystemRole) => row.roleName || RoleLabel[row.roleCode] || row.roleCode,
           },
-          { title: '排序', dataIndex: 'sortOrder', key: 'sortOrder', width: 120 },
           {
             title: '状态',
             dataIndex: 'status',
@@ -124,9 +123,6 @@ const RoleManage: React.FC = () => {
           </Form.Item>
           <Form.Item name="roleName" label="角色名称" rules={[{ required: true, message: '请输入角色名称' }]}>
             <Input placeholder="例如 项目经理" />
-          </Form.Item>
-          <Form.Item name="sortOrder" label="排序" initialValue={0}>
-            <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="status" label="状态" initialValue={1}>
             <Select

@@ -22,7 +22,7 @@ class RoleServiceTest {
         service.createRole(role);
         assertEquals("CUSTOM", role.getRoleCode());
         assertEquals(1, role.getStatus());
-        assertEquals(0, role.getSortOrder());
+        assertNull(role.getSortOrder());
     }
 
     @Test
@@ -56,6 +56,7 @@ class RoleServiceTest {
         doReturn(true).when(service).updateById(existing);
         service.updateRole(2L, payload2);
         assertEquals("new", existing.getRoleName());
+        assertNull(existing.getSortOrder());
     }
 
     @Test

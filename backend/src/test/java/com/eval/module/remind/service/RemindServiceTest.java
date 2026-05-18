@@ -49,10 +49,49 @@ class RemindServiceTest {
         u.setRealName("U");
         when(userService.getById(3L)).thenReturn(u);
         when(dingTalkService.sendTextMessage(anyString())).thenReturn(true);
+        doReturn(null).when(service).getOne(any(LambdaQueryWrapper.class));
         doReturn(true).when(service).save(any(RemindRecord.class));
 
         service.remindUnscored(1L);
         verify(service).save(any(RemindRecord.class));
+    }
+
+    @Test
+    void remindUnscoredUpdatesExistingScoreRecordInsteadOfCreatingDuplicate() {
+        EvalScoreAssignMapper assignMapper = mock(EvalScoreAssignMapper.class);
+        PeriodService periodService = mock(PeriodService.class);
+        UserService userService = mock(UserService.class);
+        DingTalkService dingTalkService = mock(DingTalkService.class);
+        RemindService service = spy(new RemindService(assignMapper, periodService, userService, dingTalkService));
+
+        EvalScoreAssign assign = new EvalScoreAssign();
+        assign.setPeriodId(1L);
+        assign.setStatus(0);
+        assign.setScorerId(3L);
+        when(assignMapper.selectList(any())).thenReturn(Collections.singletonList(assign));
+        EvalPeriod period = new EvalPeriod();
+        period.setPeriodName("P");
+        when(periodService.getById(1L)).thenReturn(period);
+        SysUser user = new SysUser();
+        user.setId(3L);
+        user.setRealName("U");
+        when(userService.getById(3L)).thenReturn(user);
+        when(dingTalkService.sendTextMessage(anyString())).thenReturn(true);
+
+        RemindRecord existing = new RemindRecord();
+        existing.setId(99L);
+        existing.setPeriodId(1L);
+        existing.setUserId(3L);
+        existing.setRemindType("SCORE");
+        doReturn(existing).when(service).getOne(any(LambdaQueryWrapper.class));
+        doReturn(true).when(service).updateById(existing);
+
+        service.remindUnscored(1L);
+
+        verify(service, never()).save(any(RemindRecord.class));
+        verify(service).updateById(existing);
+        assertEquals("DINGTALK", existing.getRemindWay());
+        assertEquals(1, existing.getSendStatus());
     }
 
     @Test
