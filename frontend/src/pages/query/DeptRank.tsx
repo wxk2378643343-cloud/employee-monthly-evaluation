@@ -33,7 +33,7 @@ const DeptRank: React.FC = () => {
       setLoading(true);
       try {
         // Auto-calculate before ranking query so dept_rank/weighted_score are up-to-date.
-        if (user?.role === 'ADMIN') {
+        if (user?.role === 'SYS_ADMIN' || user?.role === 'LEADER') {
           await scoreApi.calculateScores(currentPeriodId);
         }
         const data = await queryApi.getDeptRank(currentPeriodId, currentDeptId);
@@ -70,7 +70,7 @@ const DeptRank: React.FC = () => {
             { title: '排名', dataIndex: 'deptRank', key: 'deptRank' },
             { title: '姓名', dataIndex: 'targetName', key: 'targetName' },
             ...(!isMobile ? [{ title: '部门', dataIndex: 'deptName', key: 'deptName' }] : []),
-            ...(!isMobile ? [{ title: '小组', dataIndex: 'groupName', key: 'groupName' }] : []),
+            ...(!isMobile ? [{ title: '网格', dataIndex: 'groupName', key: 'groupName' }] : []),
             { title: '综合分', dataIndex: 'weightedScore', key: 'weightedScore' },
             {
               title: '状态',

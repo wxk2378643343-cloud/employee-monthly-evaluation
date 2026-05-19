@@ -1,7 +1,9 @@
 package com.eval.module.remind.controller;
 
 import com.eval.common.result.Result;
+import com.eval.module.remind.dto.NoticeUpdateDTO;
 import com.eval.module.remind.dto.PublishMessageDTO;
+import com.eval.module.remind.entity.Notice;
 import com.eval.module.remind.entity.RemindRecord;
 import com.eval.module.remind.service.RemindService;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,26 @@ public class RemindController {
     @PreAuthorize("hasAuthority('remind:manage')")
     public Result<Void> publishMessage(@Valid @RequestBody PublishMessageDTO dto) {
         remindService.publishMessage(dto);
+        return Result.success();
+    }
+
+    @GetMapping("/notices")
+    @PreAuthorize("hasAuthority('remind:manage')")
+    public Result<List<Notice>> listNotices(@RequestParam(required = false) Long periodId) {
+        return Result.success(remindService.listNotices(periodId));
+    }
+
+    @PutMapping("/notices/{noticeId}")
+    @PreAuthorize("hasAuthority('remind:manage')")
+    public Result<Void> updateNotice(@PathVariable Long noticeId, @Valid @RequestBody NoticeUpdateDTO dto) {
+        remindService.updateNotice(noticeId, dto);
+        return Result.success();
+    }
+
+    @PostMapping("/notices/{noticeId}/recall")
+    @PreAuthorize("hasAuthority('remind:manage')")
+    public Result<Void> recallNotice(@PathVariable Long noticeId) {
+        remindService.recallNotice(noticeId);
         return Result.success();
     }
 

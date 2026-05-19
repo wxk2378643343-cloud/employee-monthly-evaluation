@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.eval.common.exception.BusinessException;
 import com.eval.common.result.Result;
 import com.eval.common.utils.SecurityUtils;
+import com.eval.module.system.dto.BatchResetPasswordDTO;
 import com.eval.module.system.dto.UserImportResultVO;
 import com.eval.module.system.dto.UserInfoVO;
 import com.eval.module.system.entity.SysUser;
@@ -13,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -75,6 +77,13 @@ public class UserController {
         return Result.success();
     }
 
+    @PostMapping("/reset-passwords")
+    @PreAuthorize("hasAuthority('user:manage')")
+    public Result<Void> resetPasswords(@Valid @RequestBody BatchResetPasswordDTO dto) {
+        userService.resetPasswords(dto.getUserIds(), dto.getNewPassword());
+        return Result.success();
+    }
+
     @PostMapping("/import")
     @PreAuthorize("hasAuthority('user:manage')")
     public Result<UserImportResultVO> importUsers(@RequestParam("file") MultipartFile file) {
@@ -113,7 +122,7 @@ public class UserController {
         if (currentUserId.equals(targetUser.getId())) {
             return true;
         }
-        if ("ADMIN".equals(currentUser.getRole())) {
+        if ("SYS_ADMIN".equals(currentUser.getRole()) || "LEADER".equals(currentUser.getRole())) {
             return true;
         }
         if ("DEPT_LEADER".equals(currentUser.getRole())) {

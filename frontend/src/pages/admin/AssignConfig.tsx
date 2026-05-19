@@ -351,7 +351,7 @@ const AssignConfig: React.FC = () => {
 
     if (!rows.length && !editGroupId) {
       if (peerNeedMoreEmployeesGroups.length) {
-        message.warning(`以下小组开启了员工互评，但员工人数不足2人：${peerNeedMoreEmployeesGroups.join('、')}`);
+        message.warning(`以下网格开启了员工互评，但员工人数不足2人：${peerNeedMoreEmployeesGroups.join('、')}`);
         return false;
       }
       message.warning('没有可保存的数据，请先在网格行里选择员工和评分人');
@@ -362,7 +362,7 @@ const AssignConfig: React.FC = () => {
     try {
       if (editGroupId) {
         await adminApi.updateAssignByGroup({ periodId: currentPeriodId, groupId: editGroupId, assignments: rows });
-        message.success(`保存成功，已更新当前小组 ${rows.length} 条`);
+        message.success(`保存成功，已更新当前网格 ${rows.length} 条`);
       } else {
         await adminApi.clearAssignByPeriod(currentPeriodId);
         await adminApi.saveAssign({ periodId: currentPeriodId, assignments: rows });
@@ -378,7 +378,7 @@ const AssignConfig: React.FC = () => {
   };
 
   const configColumns = [
-    { title: '网格小组', dataIndex: 'groupName', key: 'groupName', width: 120 },
+    { title: '网格', dataIndex: 'groupName', key: 'groupName', width: 120 },
     {
       title: '网格内员工',
       key: 'targets',
@@ -495,7 +495,7 @@ const AssignConfig: React.FC = () => {
         groupLeaderScorers: joinNames(rows, 'GROUP_LEADER'),
         deptLeaderScorers: joinNames(rows, 'DEPT_LEADER'),
         peerEnabled: hasPeer ? '是' : '否',
-        weightSummary: `组长${groupWeight}% / 部门${deptWeight}% / 互评${peerWeight}% / 线性${globalWeights.linearWeight}%`,
+        weightSummary: `网格负责人${groupWeight}% / 部门${deptWeight}% / 互评${peerWeight}% / 线性${globalWeights.linearWeight}%`,
         peerProgress: `${peerDone}/${peerRows.length}`,
         totalProgress: `${done}/${rows.length}`,
       };
@@ -503,8 +503,8 @@ const AssignConfig: React.FC = () => {
   }, [assignments, users, groups, globalWeights.linearWeight]);
 
   const matrixColumns = [
-    { title: '小组', dataIndex: 'groupName', key: 'groupName', width: 140 },
-    { title: '组长评分人', dataIndex: 'groupLeaderScorers', key: 'groupLeaderScorers', width: 240 },
+    { title: '网格', dataIndex: 'groupName', key: 'groupName', width: 140 },
+    { title: '网格负责人评分人', dataIndex: 'groupLeaderScorers', key: 'groupLeaderScorers', width: 240 },
     { title: '部门评分人', dataIndex: 'deptLeaderScorers', key: 'deptLeaderScorers', width: 240 },
     { title: '是否互评', dataIndex: 'peerEnabled', key: 'peerEnabled', width: 100 },
     { title: '权重', dataIndex: 'weightSummary', key: 'weightSummary', width: 420 },
@@ -692,7 +692,7 @@ const AssignConfig: React.FC = () => {
           type="info"
           showIcon
           style={{ marginBottom: 12 }}
-          message={editGroupId ? '当前为按小组修改；保存时仅更新当前小组分配配置。' : '按网格逐行配置：默认全部员工，可按需改为部分员工。'}
+          message={editGroupId ? '当前为按网格修改；保存时仅更新当前网格分配配置。' : '按网格逐行配置：默认全部员工，可按需改为部分员工。'}
         />
         <Table
           rowKey="groupId"

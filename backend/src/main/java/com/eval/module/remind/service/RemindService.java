@@ -8,14 +8,18 @@ import com.eval.module.admin.entity.EvalScoreAssign;
 import com.eval.module.admin.mapper.EvalScoreAssignMapper;
 import com.eval.module.period.entity.EvalPeriod;
 import com.eval.module.period.service.PeriodService;
+import com.eval.module.remind.dto.NoticeUpdateDTO;
 import com.eval.module.remind.dto.PublishMessageDTO;
+import com.eval.module.remind.entity.Notice;
 import com.eval.module.remind.entity.RemindRecord;
+import com.eval.module.remind.mapper.NoticeMapper;
 import com.eval.module.remind.mapper.RemindRecordMapper;
 import com.eval.module.system.entity.SysUser;
 import com.eval.module.system.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -31,6 +35,7 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
     private final PeriodService periodService;
     private final UserService userService;
     private final DingTalkService dingTalkService;
+    private final NoticeMapper noticeMapper;
 
     // userId -> read reminder ids
     private final Map<Long, Set<Long>> readIndex = new ConcurrentHashMap<>();
@@ -66,6 +71,7 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
         sendScoreRemind(periodId, periodName, userId);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void publishMessage(PublishMessageDTO dto) {
         String content = dto.getContent() == null ? "" : dto.getContent().trim();
         if (content.isEmpty()) {
@@ -78,6 +84,13 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
         }
 
         LocalDateTime now = LocalDateTime.now();
+        Notice notice = new Notice();
+        notice.setPeriodId(dto.getPeriodId());
+        notice.setContent(content);
+        notice.setStatus(1);
+        notice.setCreatedBy(SecurityUtils.getCurrentUserId());
+        noticeMapper.insert(notice);
+
         List<RemindRecord> records = new ArrayList<>();
         for (Long userId : new LinkedHashSet<>(userIds)) {
             SysUser user = userService.getById(userId);
@@ -87,6 +100,7 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
             RemindRecord record = new RemindRecord();
             record.setPeriodId(dto.getPeriodId());
             record.setUserId(userId);
+            record.setNoticeId(notice.getId());
             record.setRemindType("NOTICE");
             record.setRemindWay("SYSTEM");
             record.setSendStatus(1);
@@ -99,6 +113,64 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
             throw new BusinessException(400, "没有可发布的接收人");
         }
         saveBatch(records);
+    }
+
+    public List<Notice> listNotices(Long periodId) {
+        return noticeMapper.selectList(new LambdaQueryWrapper<Notice>()
+                .eq(periodId != null, Notice::getPeriodId, periodId)
+                .orderByDesc(Notice::getCreateTime));
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void updateNotice(Long noticeId, NoticeUpdateDTO dto) {
+        Notice notice = noticeMapper.selectById(noticeId);
+        if (notice == null) {
+            throw new BusinessException(404, "Notice not found");
+        }
+        if (!Integer.valueOf(1).equals(notice.getStatus())) {
+            throw new BusinessException(400, "Notice has been recalled");
+        }
+        String content = dto.getContent() == null ? "" : dto.getContent().trim();
+        if (content.isEmpty()) {
+            throw new BusinessException(400, "Message content cannot be empty");
+        }
+        notice.setContent(content);
+        noticeMapper.updateById(notice);
+
+        List<RemindRecord> records = list(new LambdaQueryWrapper<RemindRecord>()
+                .eq(RemindRecord::getNoticeId, noticeId)
+                .eq(RemindRecord::getRemindType, "NOTICE"));
+        for (RemindRecord record : records) {
+            record.setContent(content);
+        }
+        if (!records.isEmpty()) {
+            updateBatchById(records);
+        }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void recallNotice(Long noticeId) {
+        Notice notice = noticeMapper.selectById(noticeId);
+        if (notice == null) {
+            throw new BusinessException(404, "Notice not found");
+        }
+        if (!Integer.valueOf(1).equals(notice.getStatus())) {
+            return;
+        }
+        notice.setStatus(0);
+        notice.setRecalledTime(LocalDateTime.now());
+        noticeMapper.updateById(notice);
+
+        List<RemindRecord> records = list(new LambdaQueryWrapper<RemindRecord>()
+                .eq(RemindRecord::getNoticeId, noticeId)
+                .eq(RemindRecord::getRemindType, "NOTICE"));
+        for (RemindRecord record : records) {
+            removeById(record.getId());
+            Set<Long> readSet = readIndex.get(record.getUserId());
+            if (readSet != null) {
+                readSet.remove(record.getId());
+            }
+        }
     }
 
     public List<RemindRecord> listByPeriod(Long periodId) {
@@ -160,6 +232,7 @@ public class RemindService extends ServiceImpl<RemindRecordMapper, RemindRecord>
             Map<String, Object> item = new HashMap<>();
             item.put("id", record.getId());
             item.put("periodId", record.getPeriodId());
+            item.put("noticeId", record.getNoticeId());
             item.put("remindType", record.getRemindType());
             item.put("remindWay", record.getRemindWay());
             item.put("sendStatus", record.getSendStatus());

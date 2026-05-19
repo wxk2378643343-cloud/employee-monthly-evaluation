@@ -16,6 +16,8 @@ public class RemindRecord {
 
     private Long userId;
 
+    private Long noticeId;
+
     /** SCORE / VOTE */
     private String remindType;
 

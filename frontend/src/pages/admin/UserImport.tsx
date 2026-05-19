@@ -56,10 +56,10 @@ const UserImport: React.FC = () => {
             <a href="/人员导入模板.xlsx" download style={{ margin: '0 4px' }}>
               人员导入模板.xlsx
             </a>
-            ，按列填写「部门、网格、姓名、用户名(工号)、角色、手机号」。
+            ，按列填写“部门、网格、姓名、用户名(工号)、角色、手机号”。
           </Paragraph>
           <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            角色映射：普通员工=EMPLOYEE，网格长=GROUP_LEADER，分管领导=DEPT_LEADER，单位领导/管理员=ADMIN。
+            角色映射：普通员工=EMPLOYEE，网格负责人=GROUP_LEADER，分管领导=DEPT_LEADER，单位领导/领导=LEADER，系统管理员=SYS_ADMIN。
           </Paragraph>
 
           <Dragger {...uploadProps} disabled={loading}>

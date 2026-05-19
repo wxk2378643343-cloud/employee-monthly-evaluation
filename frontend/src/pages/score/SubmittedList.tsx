@@ -37,7 +37,7 @@ const SubmittedList: React.FC = () => {
   const columns = [
     { title: '被评价人', dataIndex: 'targetName', key: 'targetName' },
     ...(!isMobile ? [{ title: '部门', dataIndex: 'deptName', key: 'deptName' }] : []),
-    ...(!isMobile ? [{ title: '小组', dataIndex: 'groupName', key: 'groupName' }] : []),
+    ...(!isMobile ? [{ title: '网格', dataIndex: 'groupName', key: 'groupName' }] : []),
     {
       title: '评价类型',
       dataIndex: 'evalType',

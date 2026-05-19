@@ -10,7 +10,7 @@ import java.util.List;
 @Service
 public class PermissionService {
 
-    private static final List<String> ADMIN_PERMISSIONS = Collections.unmodifiableList(Arrays.asList(
+    private static final List<String> SYS_ADMIN_PERMISSIONS = Collections.unmodifiableList(Arrays.asList(
             "dept:manage",
             "group:manage",
             "user:manage",
@@ -42,12 +42,24 @@ public class PermissionService {
             "query:detail:view"
     ));
 
+    private static final List<String> LEADER_PERMISSIONS = Collections.unmodifiableList(Arrays.asList(
+            "user:group:view",
+            "user:dept:view",
+            "vote:view",
+            "query:detail:view",
+            "query:rank:view",
+            "query:statistics:view"
+    ));
+
     public List<String> getPermissionsByRole(String roleCode) {
         if (roleCode == null) {
             return Collections.emptyList();
         }
-        if ("ADMIN".equals(roleCode)) {
-            return ADMIN_PERMISSIONS;
+        if ("SYS_ADMIN".equals(roleCode)) {
+            return SYS_ADMIN_PERMISSIONS;
+        }
+        if ("LEADER".equals(roleCode)) {
+            return LEADER_PERMISSIONS;
         }
         if ("DEPT_LEADER".equals(roleCode)) {
             return DEPT_LEADER_PERMISSIONS;

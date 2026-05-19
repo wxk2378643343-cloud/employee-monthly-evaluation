@@ -55,7 +55,7 @@ const VotePage: React.FC = () => {
   const columns = [
     { title: '排名', dataIndex: 'deptRank', key: 'deptRank' },
     { title: '姓名', dataIndex: 'targetName', key: 'targetName' },
-    ...(!isMobile ? [{ title: '小组', dataIndex: 'groupName', key: 'groupName' }] : []),
+    ...(!isMobile ? [{ title: '网格', dataIndex: 'groupName', key: 'groupName' }] : []),
     {
       title: '综合分',
       dataIndex: 'weightedScore',

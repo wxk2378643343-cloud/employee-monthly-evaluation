@@ -65,7 +65,7 @@ export function deleteRole(id: number): Promise<void> {
 
 export function getLeaderList(): Promise<User[]> {
   return getUserList().then((list) =>
-    list.filter((u) => ['ADMIN', 'DEPT_LEADER', 'GROUP_LEADER'].includes(u.role))
+    list.filter((u) => ['LEADER', 'DEPT_LEADER', 'GROUP_LEADER'].includes(u.role))
   );
 }
 
@@ -82,6 +82,10 @@ export function saveUser(data: Partial<User> & { password?: string }): Promise<v
 
 export function resetUserPassword(id: number, newPassword: string): Promise<void> {
   return request.post(`/users/${id}/reset-password`, null, { params: { newPassword } });
+}
+
+export function resetUserPasswords(data: { userIds: number[]; newPassword: string }): Promise<void> {
+  return request.post('/users/reset-passwords', data);
 }
 
 export function deleteUser(id: number): Promise<void> {

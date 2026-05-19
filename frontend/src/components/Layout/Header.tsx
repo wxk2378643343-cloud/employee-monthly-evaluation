@@ -12,7 +12,7 @@ const { Header: AntHeader } = Layout;
 const HEADER_REMIND_TYPE_LABEL: Record<string, string> = {
   SCORE: '评分提醒',
   VOTE: '投票提醒',
-  NOTICE: '系统消息',
+  NOTICE: '系统公告',
 };
 
 interface HeaderProps {
@@ -80,7 +80,7 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false, onToggleSidebar }) =>
                   title={
                     <Space size={8}>
                       {!item.isRead && <span className="remind-unread-dot" />}
-                      <Tag>{HEADER_REMIND_TYPE_LABEL[item.remindType] || '消息提醒'}</Tag>
+                      <Tag>{HEADER_REMIND_TYPE_LABEL[item.remindType] || '公告提醒'}</Tag>
                     </Space>
                   }
                   description={
@@ -121,7 +121,7 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false, onToggleSidebar }) =>
           </div>
         </>
       ) : (
-        <Empty description="暂无新消息" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        <Empty description="暂无新公告" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       )}
     </div>
   );
@@ -157,7 +157,7 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false, onToggleSidebar }) =>
               />
             </Badge>
             <Drawer
-              title="消息"
+              title="公告"
               placement="right"
               width="92vw"
               open={drawerOpen}

@@ -40,7 +40,7 @@ const GroupManage: React.FC = () => {
 
   return (
     <Card
-      title="小组管理"
+      title="网格管理"
       extra={
         <Button
           type="primary"
@@ -52,7 +52,7 @@ const GroupManage: React.FC = () => {
             setModalVisible(true);
           }}
         >
-          新增小组
+          新增网格
         </Button>
       }
     >
@@ -61,7 +61,7 @@ const GroupManage: React.FC = () => {
         dataSource={groups}
         rowKey="id"
         columns={[
-          { title: '小组名称', dataIndex: 'groupName', key: 'groupName' },
+          { title: '网格名称', dataIndex: 'groupName', key: 'groupName' },
           {
             title: '部门',
             dataIndex: 'deptId',
@@ -112,9 +112,9 @@ const GroupManage: React.FC = () => {
         ]}
       />
 
-      <Modal title={currentGroup ? '编辑小组' : '新增小组'} open={modalVisible} onOk={handleSubmit} onCancel={() => setModalVisible(false)}>
+      <Modal title={currentGroup ? '编辑网格' : '新增网格'} open={modalVisible} onOk={handleSubmit} onCancel={() => setModalVisible(false)}>
         <Form form={form} layout="vertical">
-          <Form.Item name="groupName" label="小组名称" rules={[{ required: true, message: '请输入小组名称' }]}>
+          <Form.Item name="groupName" label="网格名称" rules={[{ required: true, message: '请输入网格名称' }]}>
             <Input />
           </Form.Item>
           <Form.Item name="deptId" label="所属部门" rules={[{ required: true, message: '请选择部门' }]}>

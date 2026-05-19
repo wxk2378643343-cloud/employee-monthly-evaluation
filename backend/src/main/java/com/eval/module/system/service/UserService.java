@@ -94,11 +94,13 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
     }
 
     public Page<SysUser> pageUsers(int pageNum, int pageSize, Long deptId, String keyword) {
+        String kw = keyword == null ? null : keyword.trim();
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<SysUser>()
                 .eq(deptId != null, SysUser::getDeptId, deptId)
-                .and(keyword != null && !keyword.isEmpty(), w ->
-                        w.like(SysUser::getUsername, keyword)
-                         .or().like(SysUser::getRealName, keyword))
+                .and(kw != null && !kw.isEmpty(), w ->
+                        w.like(SysUser::getUsername, kw)
+                                .or().like(SysUser::getRealName, kw)
+                                .or().like(SysUser::getPhone, kw))
                 .eq(SysUser::getStatus, 1)
                 .orderByAsc(SysUser::getId);
         return page(new Page<>(pageNum, pageSize), wrapper);
@@ -166,7 +168,7 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
                     Long deptId = null;
                     Long groupId = null;
 
-                    if (!"ADMIN".equals(roleCode)) {
+                    if (!"SYS_ADMIN".equals(roleCode) && !"LEADER".equals(roleCode)) {
                         if (isBlank(deptName)) {
                             throw new BusinessException(400, "Department is required for this role");
                         }
@@ -176,11 +178,11 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
 
                     if ("EMPLOYEE".equals(roleCode) || "GROUP_LEADER".equals(roleCode)) {
                         if (isBlank(groupName)) {
-                            throw new BusinessException(400, "Group is required for this role");
+                            throw new BusinessException(400, "Grid is required for this role");
                         }
                         SysGroup group = getOrCreateGroup(groupName, deptId, groupCache);
                         groupId = group.getId();
-                    } else if (!isBlank(groupName)) {
+                    } else if (!isBlank(groupName) && deptId != null) {
                         SysGroup group = getOrCreateGroup(groupName, deptId, groupCache);
                         groupId = group.getId();
                     }
@@ -227,8 +229,27 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
         if (user == null) {
             throw new BusinessException("User not found");
         }
+        if (isBlank(newPassword)) {
+            throw new BusinessException(400, "New password cannot be empty");
+        }
         user.setPassword(passwordEncoder.encode(newPassword));
         updateById(user);
+    }
+
+    public void resetPasswords(List<Long> userIds, String newPassword) {
+        if (userIds == null || userIds.isEmpty()) {
+            throw new BusinessException(400, "User ids cannot be empty");
+        }
+        if (isBlank(newPassword)) {
+            throw new BusinessException(400, "New password cannot be empty");
+        }
+        List<SysUser> users = listByIds(userIds);
+        for (SysUser user : users) {
+            user.setPassword(passwordEncoder.encode(newPassword));
+        }
+        if (!users.isEmpty()) {
+            updateBatchById(users);
+        }
     }
 
     public void updateOwnProfile(Long userId, ProfileUpdateDTO dto) {
@@ -264,17 +285,21 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
             if (role.getRoleCode() != null) {
                 roleCache.put(role.getRoleCode().trim().toUpperCase(Locale.ROOT), role.getRoleCode().trim().toUpperCase(Locale.ROOT));
             }
-            if (role.getRoleName() != null) {
+            if (role.getRoleName() != null && role.getRoleCode() != null) {
                 roleCache.put(role.getRoleName().trim(), role.getRoleCode().trim().toUpperCase(Locale.ROOT));
             }
         }
-        roleCache.put("普通员工", "EMPLOYEE");
-        roleCache.put("网格长", "GROUP_LEADER");
-        roleCache.put("分管领导", "DEPT_LEADER");
-        roleCache.put("单位领导", "ADMIN");
-        roleCache.put("管理员", "ADMIN");
-        roleCache.put("部门负责人", "DEPT_LEADER");
-        roleCache.put("小组负责人", "GROUP_LEADER");
+        roleCache.put("\u666e\u901a\u5458\u5de5", "EMPLOYEE");
+        roleCache.put("\u5458\u5de5", "EMPLOYEE");
+        roleCache.put("\u7f51\u683c\u957f", "GROUP_LEADER");
+        roleCache.put("\u7f51\u683c\u8d1f\u8d23\u4eba", "GROUP_LEADER");
+        roleCache.put("\u5c0f\u7ec4\u8d1f\u8d23\u4eba", "GROUP_LEADER");
+        roleCache.put("\u90e8\u95e8\u8d1f\u8d23\u4eba", "DEPT_LEADER");
+        roleCache.put("\u5206\u7ba1\u9886\u5bfc", "DEPT_LEADER");
+        roleCache.put("\u5355\u4f4d\u9886\u5bfc", "LEADER");
+        roleCache.put("\u9886\u5bfc", "LEADER");
+        roleCache.put("\u7cfb\u7edf\u7ba1\u7406\u5458", "SYS_ADMIN");
+        roleCache.put("\u7ba1\u7406\u5458", "SYS_ADMIN");
         return roleCache;
     }
 
@@ -314,7 +339,7 @@ public class UserService extends ServiceImpl<SysUserMapper, SysUser> {
 
     private SysGroup getOrCreateGroup(String groupName, Long deptId, Map<String, SysGroup> groupCache) {
         if (deptId == null) {
-            throw new BusinessException(400, "Department is required before group");
+            throw new BusinessException(400, "Department is required before grid");
         }
         String name = groupName.trim();
         String key = deptId + "::" + name;

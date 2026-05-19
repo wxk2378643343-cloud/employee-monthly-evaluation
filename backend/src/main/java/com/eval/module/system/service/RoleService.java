@@ -15,7 +15,7 @@ import java.util.Locale;
 public class RoleService extends ServiceImpl<SysRoleMapper, SysRole> {
 
     private static final List<String> BUILTIN_CODES =
-            Arrays.asList("ADMIN", "DEPT_LEADER", "GROUP_LEADER", "EMPLOYEE");
+            Arrays.asList("SYS_ADMIN", "LEADER", "DEPT_LEADER", "GROUP_LEADER", "EMPLOYEE");
 
     public List<SysRole> listAll() {
         return list(new LambdaQueryWrapper<SysRole>()

@@ -277,7 +277,7 @@ public class AssignService extends ServiceImpl<EvalScoreAssignMapper, EvalScoreA
                 .filter(u -> "DEPT_LEADER".equals(u.getRole()) && u.getDeptId() != null)
                 .collect(Collectors.toList());
         List<SysUser> admins = users.stream()
-                .filter(u -> "ADMIN".equals(u.getRole()))
+                .filter(u -> "LEADER".equals(u.getRole()))
                 .collect(Collectors.toList());
 
         Map<Long, List<SysUser>> employeesByGroup = employees.stream()

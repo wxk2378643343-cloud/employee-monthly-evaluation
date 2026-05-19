@@ -3,21 +3,23 @@
 export type UserRole = string;
 
 export const Role = {
-  ADMIN: 'ADMIN',
+  SYS_ADMIN: 'SYS_ADMIN',
+  LEADER: 'LEADER',
   DEPT_LEADER: 'DEPT_LEADER',
   GROUP_LEADER: 'GROUP_LEADER',
   EMPLOYEE: 'EMPLOYEE',
 } as const;
 
 export const RoleLabel: Record<string, string> = {
-  ADMIN: '管理员',
+  SYS_ADMIN: '系统管理员',
+  LEADER: '领导',
   DEPT_LEADER: '部门负责人',
-  GROUP_LEADER: '小组负责人',
+  GROUP_LEADER: '网格负责人',
   EMPLOYEE: '员工',
 };
 
-export const isAdminRole = (role?: string) => role === Role.ADMIN;
-export const isLeaderRole = (role?: string) => role === Role.DEPT_LEADER || role === Role.GROUP_LEADER;
+export const isAdminRole = (role?: string) => role === Role.SYS_ADMIN;
+export const isLeaderRole = (role?: string) => role === Role.LEADER || role === Role.DEPT_LEADER || role === Role.GROUP_LEADER;
 export const isLeaderOrAdmin = (role?: string) => isLeaderRole(role) || isAdminRole(role);
 
 export interface Department {
@@ -93,9 +95,9 @@ export type EvalType = 'SELF' | 'PEER' | 'GROUP_LEADER' | 'DEPT_LEADER' | 'ADMIN
 export const EvalTypeLabel: Record<EvalType, string> = {
   SELF: '自评',
   PEER: '员工互评',
-  GROUP_LEADER: '小组负责人评价',
+  GROUP_LEADER: '网格负责人评价',
   DEPT_LEADER: '部门负责人评价',
-  ADMIN: '管理员评价',
+  ADMIN: '领导评价',
 };
 
 export interface AssignRow {
@@ -210,6 +212,7 @@ export type RemindType = 'SCORE' | 'VOTE' | 'NOTICE';
 export interface Remind {
   id: number;
   periodId?: number;
+  noticeId?: number;
   remindType: RemindType;
   remindWay?: string;
   sendStatus?: number;
@@ -217,6 +220,17 @@ export interface Remind {
   createTime?: string;
   isRead: boolean;
   remindContent: string;
+}
+
+export interface Notice {
+  id: number;
+  periodId: number;
+  content: string;
+  status: number;
+  createdBy?: number;
+  createTime?: string;
+  updateTime?: string;
+  recalledTime?: string;
 }
 
 export interface ApiResponse<T = unknown> {

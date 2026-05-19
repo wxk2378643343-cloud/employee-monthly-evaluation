@@ -59,7 +59,7 @@ const ProfilePage: React.FC = () => {
           <Descriptions.Item label="用户名">{user?.username || '-'}</Descriptions.Item>
           <Descriptions.Item label="角色">{user?.role || '-'}</Descriptions.Item>
           <Descriptions.Item label="部门">{user?.deptName || '-'}</Descriptions.Item>
-          <Descriptions.Item label="小组">{user?.groupName || '-'}</Descriptions.Item>
+          <Descriptions.Item label="网格">{user?.groupName || '-'}</Descriptions.Item>
         </Descriptions>
 
         <Divider />

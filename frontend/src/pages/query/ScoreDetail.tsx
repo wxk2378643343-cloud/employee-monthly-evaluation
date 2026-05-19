@@ -100,7 +100,7 @@ const ScoreDetail: React.FC = () => {
           return;
         }
 
-        if (currentUser.role === 'ADMIN') {
+        if (currentUser.role === 'SYS_ADMIN' || currentUser.role === 'LEADER') {
           const users = await adminApi.getUserList();
           setScopeUsers(users.filter((u) => u.role === 'EMPLOYEE' && u.id !== currentUser.id));
           return;
@@ -253,7 +253,7 @@ const ScoreDetail: React.FC = () => {
               { title: '员工', dataIndex: 'employeeName', key: 'employeeName', width: 140 },
               { title: '周期', dataIndex: 'periodName', key: 'periodName', width: 160 },
               { title: '互评', dataIndex: 'peerScore', key: 'peerScore', width: 100, render: renderScore },
-              { title: '组长', dataIndex: 'groupLeaderScore', key: 'groupLeaderScore', width: 100, render: renderScore },
+              { title: '网格负责人', dataIndex: 'groupLeaderScore', key: 'groupLeaderScore', width: 120, render: renderScore },
               { title: '部门负责人', dataIndex: 'deptLeaderScore', key: 'deptLeaderScore', width: 120, render: renderScore },
               { title: '线性分', dataIndex: 'linearRankScore', key: 'linearRankScore', width: 100, render: renderScore },
               { title: '综合分', dataIndex: 'weightedScore', key: 'weightedScore', width: 100, render: renderScore },

@@ -86,7 +86,7 @@ public class QueryService {
 
         if (!currentUserId.equals(targetId)) {
             String role = currentUser.getRole();
-            if ("ADMIN".equals(role)) {
+            if ("SYS_ADMIN".equals(role) || "LEADER".equals(role)) {
                 // allow
             } else if ("DEPT_LEADER".equals(role)) {
                 if (currentUser.getDeptId() == null || !currentUser.getDeptId().equals(targetUser.getDeptId())) {
