@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { Drawer, Layout, Menu } from 'antd';
 import {
   DashboardOutlined,
@@ -137,7 +137,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, mobileOpen = false,
       <div className="app-sider__brand">
         <div className="app-sider__brand-dot" />
         <div>
-          <div className="app-sider__brand-title">红色绩效中台</div>
+          <div className="app-sider__brand-title">活水预警平台</div>
           <div className="app-sider__brand-sub">EVAL MANAGEMENT</div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Layout, Dropdown, Space, Badge, Popover, List, Button, Empty, Tag, Avatar, Drawer } from 'antd';
 import { LogoutOutlined, BellOutlined, SettingOutlined, CaretDownFilled, MenuOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -139,7 +139,7 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false, onToggleSidebar }) =>
         )}
         <div className="app-header__brand-dot" />
         <div className="app-header__title-wrap">
-          <div className="app-header__title">员工月度评价系统</div>
+          <div className="app-header__title">活水预警平台</div>
           <div className="app-header__subtitle">Performance Management</div>
         </div>
       </div>

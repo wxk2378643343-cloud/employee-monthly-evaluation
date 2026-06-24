@@ -132,7 +132,7 @@ CREATE TABLE IF NOT EXISTS eval_vote (
 
 CREATE TABLE IF NOT EXISTS notice (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Notice ID',
-    period_id     BIGINT NOT NULL COMMENT 'Period ID',
+    period_id     BIGINT COMMENT 'Period ID',
     content       VARCHAR(500) NOT NULL COMMENT 'Notice content',
     status        TINYINT DEFAULT 1 COMMENT 'Status 1-published 0-recalled',
     created_by    BIGINT COMMENT 'Creator user ID',
@@ -146,7 +146,7 @@ CREATE TABLE IF NOT EXISTS notice (
 
 CREATE TABLE IF NOT EXISTS remind_record (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Reminder ID',
-    period_id     BIGINT NOT NULL COMMENT 'Period ID',
+    period_id     BIGINT COMMENT 'Period ID',
     user_id       BIGINT NOT NULL COMMENT 'Target user ID',
     notice_id     BIGINT COMMENT 'Notice ID',
     remind_type   VARCHAR(30) NOT NULL COMMENT 'Reminder type: SCORE/VOTE/NOTICE',

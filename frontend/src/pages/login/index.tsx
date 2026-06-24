@@ -67,7 +67,7 @@ const LoginPage: React.FC = () => {
       <div className="login-v2__brand">
         <div className="login-v2__brand-inner">
           <div className="login-v2__chip">EVAL MANAGEMENT</div>
-          <h1>员工月度评价系统</h1>
+          <h1>活水预警平台</h1>
           <p>统一评价、统一标准、统一反馈，构建更透明的绩效协作流程。</p>
 
           <ul className="login-v2__points">
