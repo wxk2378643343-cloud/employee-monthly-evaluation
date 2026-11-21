@@ -13,7 +13,7 @@
 
 ## Docker 启动
 
-需要 Docker 和 Compose v2。在仓库根目录复制环境变量模板（PowerShell 可使用 `Copy-Item .env.example .env`），设置 MySQL、Redis 的密码和 JWT 密钥，然后启动。
+需要 Docker 和 Compose v2。在仓库根目录复制环境变量模板（PowerShell 可使用 `Copy-Item .env.example .env`），设置 MySQL 和 Redis 密码。`JWT_SECRET` 必须是至少 32 个随机字节的 Base64 编码，可用 `openssl rand -base64 32` 生成。填写后启动。
 
 ```sh
 cp .env.example .env
