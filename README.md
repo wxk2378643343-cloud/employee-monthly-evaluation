@@ -47,3 +47,9 @@ docker compose ps
 ### 本地开发
 
 前端可在 `frontend/` 中运行 `npm ci` 和 `npm run dev`，开发地址为 `http://localhost:3000`。前端默认将 API 请求代理到本机 8080 端口。后端要求 Java 8 和 Maven，连接 MySQL、Redis 的参数见 [开发环境配置](backend/src/main/resources/application-dev.yml)。启动后端前，先按 [部署指南](DEPLOY.md) 配置数据库和 Redis。
+
+---
+
+## 📄 开源许可证
+
+本项目基于 [MIT License](LICENSE) 开源，详见根目录 [LICENSE](LICENSE) 文件。
